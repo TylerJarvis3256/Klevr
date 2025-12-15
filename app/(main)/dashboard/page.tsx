@@ -5,9 +5,10 @@ import { getDashboardStats } from '@/lib/dashboard-stats'
 import { StatCards } from '@/components/dashboard/stat-cards'
 import { FilterBar } from '@/components/dashboard/filter-bar'
 import { Pipeline } from '@/components/dashboard/pipeline'
+import { EmptyState } from '@/components/ui/empty-state'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Inbox } from 'lucide-react'
 import { FitBucket, ApplicationStatus } from '@prisma/client'
 
 interface DashboardPageProps {
@@ -73,19 +74,19 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       {/* Pipeline */}
       {applications.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-12 text-center">
-          <h3 className="font-lora text-2xl font-semibold text-secondary mb-2">
-            No applications yet
-          </h3>
-          <p className="text-secondary/70 mb-6">
-            Add your first job to start tracking your path to hired.
-          </p>
-          <Link href="/jobs/new">
-            <Button size="lg" variant="cta">
-              <Plus className="h-5 w-5 mr-2" />
-              Add Your First Job
-            </Button>
-          </Link>
+        <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-12">
+          <EmptyState
+            icon={Inbox}
+            title="No applications yet"
+            description="Add your first job to start tracking your path to hired."
+            action={{
+              label: 'Add Your First Job',
+              onClick: () => {
+                window.location.href = '/jobs/new'
+              },
+              variant: 'cta',
+            }}
+          />
         </div>
       ) : (
         <Pipeline

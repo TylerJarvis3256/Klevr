@@ -26,6 +26,8 @@ export async function GET(_req: NextRequest) {
       user: {
         id: userData.id,
         email: userData.email,
+        auth0_id: userData.auth0_id,
+        created_at: userData.created_at,
       },
       profile: userData.Profile,
     })

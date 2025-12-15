@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { JobsTable } from '@/components/jobs/jobs-table'
-import { Plus, Search, Loader2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SkeletonTableRow } from '@/components/ui/skeleton'
+import { Plus, Search, Loader2, Inbox } from 'lucide-react'
 import type { Application, Job } from '@prisma/client'
 
 type ApplicationWithJob = Application & { Job: Job }
@@ -120,18 +122,32 @@ function JobsListContent() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-12 bg-white rounded-2xl border border-secondary/10 shadow-card">
-          <Loader2 className="h-8 w-8 animate-spin text-accent-teal" />
+        <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-6">
+          <div className="space-y-4">
+            <SkeletonTableRow />
+            <SkeletonTableRow />
+            <SkeletonTableRow />
+            <SkeletonTableRow />
+            <SkeletonTableRow />
+          </div>
         </div>
       ) : applications.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-2xl border border-secondary/10 shadow-card">
-          <p className="text-secondary/70 mb-4">No jobs found. Add your first job to get started!</p>
-          <Link href="/jobs/new">
-            <Button className="rounded-full">Add Your First Job</Button>
-          </Link>
+        <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-12">
+          <EmptyState
+            icon={Inbox}
+            title="No jobs found"
+            description="Add your first job to get started tracking your applications."
+            action={{
+              label: 'Add Your First Job',
+              onClick: () => {
+                window.location.href = '/jobs/new'
+              },
+              variant: 'cta',
+            }}
+          />
         </div>
       ) : (
-        <JobsTable applications={applications} />
+        <JobsTable applications={applications} onUpdate={fetchJobs} />
       )}
     </div>
   )
