@@ -19,6 +19,9 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
   const [addingSkill, setAddingSkill] = useState<string | null>(null)
   const [isRescoring, setIsRescoring] = useState(false)
 
+  // Track skills added optimistically (not yet reflected in server data)
+  const [optimisticallyAddedSkills, setOptimisticallyAddedSkills] = useState<Set<string>>(new Set())
+
   // Local state for optimistic UI updates
   const [matchingSkills, setMatchingSkills] = useState<string[]>(application.matching_skills || [])
   const [missingRequiredSkills, setMissingRequiredSkills] = useState<string[]>(
@@ -29,19 +32,32 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
   )
   const [missingSkills, setMissingSkills] = useState<string[]>(application.missing_skills || [])
 
-  // Sync local state when application data updates
+  // Sync local state when application data updates, preserving optimistic additions
   useEffect(() => {
-    setMatchingSkills(application.matching_skills || [])
-    setMissingRequiredSkills(application.missing_required_skills || [])
-    setMissingPreferredSkills(application.missing_preferred_skills || [])
-    setMissingSkills(application.missing_skills || [])
-  }, [application])
+    // Merge server data with optimistically added skills
+    const serverMatching = application.matching_skills || []
+    const serverMissingRequired = application.missing_required_skills || []
+    const serverMissingPreferred = application.missing_preferred_skills || []
+    const serverMissing = application.missing_skills || []
+
+    // Add optimistically added skills to matching, remove from missing
+    const mergedMatching = [...new Set([...serverMatching, ...Array.from(optimisticallyAddedSkills)])]
+    const mergedMissingRequired = serverMissingRequired.filter(s => !optimisticallyAddedSkills.has(s))
+    const mergedMissingPreferred = serverMissingPreferred.filter(s => !optimisticallyAddedSkills.has(s))
+    const mergedMissing = serverMissing.filter(s => !optimisticallyAddedSkills.has(s))
+
+    setMatchingSkills(mergedMatching)
+    setMissingRequiredSkills(mergedMissingRequired)
+    setMissingPreferredSkills(mergedMissingPreferred)
+    setMissingSkills(mergedMissing)
+  }, [application, optimisticallyAddedSkills])
 
   // Listen for task completion and refresh when done
   const { status } = useSSETask(
     aiTask?.status === 'PENDING' || aiTask?.status === 'RUNNING' ? aiTask.id : null,
     () => {
-      // When task completes successfully, refresh the page data
+      // When task completes successfully, clear optimistic state and refresh
+      setOptimisticallyAddedSkills(new Set())
       router.refresh()
     }
   )
@@ -77,6 +93,9 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
 
       if (!updateRes.ok) throw new Error('Failed to update skills')
 
+      // Track this skill as optimistically added
+      setOptimisticallyAddedSkills((prev) => new Set([...prev, skill]))
+
       // Optimistically update UI - move skill from missing to matching
       setMatchingSkills((prev) => [...prev, skill])
       setMissingRequiredSkills((prev) => prev.filter((s) => s !== skill))
@@ -106,6 +125,9 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to re-score')
       }
+
+      // Clear optimistic state - re-score will update server data with actual skills
+      setOptimisticallyAddedSkills(new Set())
 
       toast.success('Re-assessment started. This may take a minute...')
       router.refresh()
@@ -185,12 +207,27 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
                 Matching Skills
               </h3>
               <ul className="space-y-1">
-                {matchingSkills.map((skill, i) => (
-                  <li key={i} className="text-sm text-secondary/80">
-                    • {skill}
-                  </li>
-                ))}
+                {matchingSkills.map((skill, i) => {
+                  const isOptimistic = optimisticallyAddedSkills.has(skill)
+                  return (
+                    <li
+                      key={i}
+                      className="text-sm text-secondary/80 flex items-center gap-2"
+                      title={isOptimistic ? 'Added locally - re-assess to update fit score' : undefined}
+                    >
+                      • {skill}
+                      {isOptimistic && (
+                        <span className="text-xs text-accent-teal">*</span>
+                      )}
+                    </li>
+                  )
+                })}
               </ul>
+              {optimisticallyAddedSkills.size > 0 && (
+                <p className="text-xs text-secondary/60 mt-3 italic">
+                  * Recently added - re-assess to update fit score
+                </p>
+              )}
             </div>
           )}
 
