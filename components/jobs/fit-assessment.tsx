@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { Application, AiTask } from '@prisma/client'
-import { Loader2, CheckCircle2, XCircle, AlertCircle, Plus } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, Plus } from 'lucide-react'
 import { FitBadge } from './fit-badge'
 import { useSSETask } from '@/lib/hooks/use-sse-task'
 import { useRouter } from 'next/navigation'
@@ -18,6 +18,24 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
   const router = useRouter()
   const [addingSkill, setAddingSkill] = useState<string | null>(null)
   const [isRescoring, setIsRescoring] = useState(false)
+
+  // Local state for optimistic UI updates
+  const [matchingSkills, setMatchingSkills] = useState<string[]>(application.matching_skills || [])
+  const [missingRequiredSkills, setMissingRequiredSkills] = useState<string[]>(
+    application.missing_required_skills || []
+  )
+  const [missingPreferredSkills, setMissingPreferredSkills] = useState<string[]>(
+    application.missing_preferred_skills || []
+  )
+  const [missingSkills, setMissingSkills] = useState<string[]>(application.missing_skills || [])
+
+  // Sync local state when application data updates
+  useEffect(() => {
+    setMatchingSkills(application.matching_skills || [])
+    setMissingRequiredSkills(application.missing_required_skills || [])
+    setMissingPreferredSkills(application.missing_preferred_skills || [])
+    setMissingSkills(application.missing_skills || [])
+  }, [application])
 
   // Listen for task completion and refresh when done
   const { status } = useSSETask(
@@ -58,6 +76,12 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
       })
 
       if (!updateRes.ok) throw new Error('Failed to update skills')
+
+      // Optimistically update UI - move skill from missing to matching
+      setMatchingSkills((prev) => [...prev, skill])
+      setMissingRequiredSkills((prev) => prev.filter((s) => s !== skill))
+      setMissingPreferredSkills((prev) => prev.filter((s) => s !== skill))
+      setMissingSkills((prev) => prev.filter((s) => s !== skill))
 
       toast.success(`Added "${skill}" to your profile`)
       router.refresh()
@@ -154,14 +178,14 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
         {/* Matching and Missing Skills */}
         <div className="grid md:grid-cols-2 gap-4">
           {/* Matching Skills */}
-          {application.matching_skills && application.matching_skills.length > 0 && (
+          {matchingSkills.length > 0 && (
             <div className="bg-white rounded-xl border border-secondary/10 p-6">
               <h3 className="font-lora font-semibold mb-3 flex items-center gap-2 text-secondary">
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
                 Matching Skills
               </h3>
               <ul className="space-y-1">
-                {application.matching_skills.map((skill, i) => (
+                {matchingSkills.map((skill, i) => (
                   <li key={i} className="text-sm text-secondary/80">
                     • {skill}
                   </li>
@@ -171,9 +195,9 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
           )}
 
           {/* Missing Skills */}
-          {((application.missing_required_skills && application.missing_required_skills.length > 0) ||
-            (application.missing_preferred_skills && application.missing_preferred_skills.length > 0) ||
-            (application.missing_skills && application.missing_skills.length > 0)) && (
+          {(missingRequiredSkills.length > 0 ||
+            missingPreferredSkills.length > 0 ||
+            missingSkills.length > 0) && (
             <div className="bg-white rounded-xl border border-secondary/10 p-6">
               <h3 className="font-lora font-semibold mb-3 flex items-center gap-2 text-secondary">
                 <XCircle className="w-5 h-5 text-orange-600" />
@@ -181,11 +205,11 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
               </h3>
               <div className="space-y-4">
                 {/* Required Skills */}
-                {application.missing_required_skills && application.missing_required_skills.length > 0 && (
+                {missingRequiredSkills.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-orange-600 mb-2 uppercase tracking-wide">Required</h4>
                     <ul className="space-y-2">
-                      {application.missing_required_skills.map((skill, i) => (
+                      {missingRequiredSkills.map((skill, i) => (
                         <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
                           <span>• {skill}</span>
                           <Button
@@ -212,11 +236,11 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
                 )}
 
                 {/* Preferred Skills */}
-                {application.missing_preferred_skills && application.missing_preferred_skills.length > 0 && (
+                {missingPreferredSkills.length > 0 && (
                   <div>
                     <h4 className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Preferred</h4>
                     <ul className="space-y-2">
-                      {application.missing_preferred_skills.map((skill, i) => (
+                      {missingPreferredSkills.map((skill, i) => (
                         <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
                           <span>• {skill}</span>
                           <Button
@@ -243,11 +267,11 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
                 )}
 
                 {/* Fallback for old missing_skills field (for existing jobs) */}
-                {application.missing_skills && application.missing_skills.length > 0 &&
-                 (!application.missing_required_skills || application.missing_required_skills.length === 0) &&
-                 (!application.missing_preferred_skills || application.missing_preferred_skills.length === 0) && (
+                {missingSkills.length > 0 &&
+                 missingRequiredSkills.length === 0 &&
+                 missingPreferredSkills.length === 0 && (
                   <ul className="space-y-2">
-                    {application.missing_skills.map((skill, i) => (
+                    {missingSkills.map((skill, i) => (
                       <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
                         <span>• {skill}</span>
                         <Button
