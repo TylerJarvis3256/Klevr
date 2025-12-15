@@ -138,14 +138,18 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
     }
   }
 
-  // Show loading state if task is in progress
-  if (!application.fit_bucket && (aiTask?.status === 'PENDING' || aiTask?.status === 'RUNNING')) {
+  // Show loading state if task is in progress (initial assessment or re-assessment)
+  const isAssessing = aiTask?.status === 'PENDING' || aiTask?.status === 'RUNNING'
+
+  if (isAssessing) {
     return (
       <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
         <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">Fit Assessment</h2>
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-accent-teal mb-4" />
-          <p className="text-secondary/70">Analyzing job fit...</p>
+          <p className="text-secondary/70">
+            {application.fit_bucket ? 'Re-assessing job fit...' : 'Analyzing job fit...'}
+          </p>
           <p className="text-sm text-secondary/60 mt-2">
             {status === 'RUNNING' ? 'Processing your resume...' : 'Starting analysis...'}
           </p>
