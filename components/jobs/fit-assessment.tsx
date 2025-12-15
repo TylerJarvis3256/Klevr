@@ -152,7 +152,7 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
         </div>
 
         {/* Matching and Missing Skills */}
-        <div className="space-y-4">
+        <div className="grid md:grid-cols-2 gap-4">
           {/* Matching Skills */}
           {application.matching_skills && application.matching_skills.length > 0 && (
             <div className="bg-white rounded-xl border border-secondary/10 p-6">
@@ -170,71 +170,108 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
             </div>
           )}
 
-          {/* Required Skills to Develop */}
-          {application.missing_required_skills && application.missing_required_skills.length > 0 && (
+          {/* Missing Skills */}
+          {((application.missing_required_skills && application.missing_required_skills.length > 0) ||
+            (application.missing_preferred_skills && application.missing_preferred_skills.length > 0) ||
+            (application.missing_skills && application.missing_skills.length > 0)) && (
             <div className="bg-white rounded-xl border border-secondary/10 p-6">
               <h3 className="font-lora font-semibold mb-3 flex items-center gap-2 text-secondary">
                 <XCircle className="w-5 h-5 text-orange-600" />
-                Required Skills to Develop
+                Skills to Develop
               </h3>
-              <ul className="space-y-2">
-                {application.missing_required_skills.map((skill, i) => (
-                  <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
-                    <span>• {skill}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleAddSkill(skill)}
-                      disabled={addingSkill === skill}
-                      className="h-7 px-2 text-xs"
-                    >
-                      {addingSkill === skill ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <>
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add
-                        </>
-                      )}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+              <div className="space-y-4">
+                {/* Required Skills */}
+                {application.missing_required_skills && application.missing_required_skills.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-orange-600 mb-2 uppercase tracking-wide">Required</h4>
+                    <ul className="space-y-2">
+                      {application.missing_required_skills.map((skill, i) => (
+                        <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                          <span>• {skill}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAddSkill(skill)}
+                            disabled={addingSkill === skill}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {addingSkill === skill ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add
+                              </>
+                            )}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
 
-          {/* Preferred Skills to Consider */}
-          {application.missing_preferred_skills && application.missing_preferred_skills.length > 0 && (
-            <div className="bg-white rounded-xl border border-secondary/10 p-6">
-              <h3 className="font-lora font-semibold mb-3 flex items-center gap-2 text-secondary">
-                <AlertCircle className="w-5 h-5 text-blue-600" />
-                Skills to Consider
-              </h3>
-              <ul className="space-y-2">
-                {application.missing_preferred_skills.map((skill, i) => (
-                  <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
-                    <span>• {skill}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleAddSkill(skill)}
-                      disabled={addingSkill === skill}
-                      className="h-7 px-2 text-xs"
-                    >
-                      {addingSkill === skill ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <>
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add
-                        </>
-                      )}
-                    </Button>
-                  </li>
-                ))}
-              </ul>
+                {/* Preferred Skills */}
+                {application.missing_preferred_skills && application.missing_preferred_skills.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Preferred</h4>
+                    <ul className="space-y-2">
+                      {application.missing_preferred_skills.map((skill, i) => (
+                        <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                          <span>• {skill}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAddSkill(skill)}
+                            disabled={addingSkill === skill}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {addingSkill === skill ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add
+                              </>
+                            )}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Fallback for old missing_skills field (for existing jobs) */}
+                {application.missing_skills && application.missing_skills.length > 0 &&
+                 (!application.missing_required_skills || application.missing_required_skills.length === 0) &&
+                 (!application.missing_preferred_skills || application.missing_preferred_skills.length === 0) && (
+                  <ul className="space-y-2">
+                    {application.missing_skills.map((skill, i) => (
+                      <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                        <span>• {skill}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAddSkill(skill)}
+                          disabled={addingSkill === skill}
+                          className="h-7 px-2 text-xs"
+                        >
+                          {addingSkill === skill ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add
+                            </>
+                          )}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           )}
         </div>
