@@ -33,13 +33,16 @@ model Application {
   user_id           String
   job_id            String
   status            ApplicationStatus   @default(PLANNED)
+  score_count       Int                 @default(1)
   applied_at        DateTime?
   fit_bucket        FitBucket?
   fit_score         Float?
   score_explanation String?
-  matching_skills   String[]
-  missing_skills    String[]
-  company_research  Json?
+  matching_skills          String[]
+  missing_skills           String[]
+  missing_required_skills  String[]  @default([])
+  missing_preferred_skills String[]  @default([])
+  company_research         Json?
   created_at        DateTime            @default(now())
   updated_at        DateTime            @updatedAt
   AiTask            AiTask[]
@@ -117,6 +120,7 @@ model Profile {
   parsed_resume_confirmed_at DateTime?
   job_types                  String[]
   preferred_locations        String[]
+  skills                     String[]  @default([])
   created_at                 DateTime  @default(now())
   updated_at                 DateTime  @updatedAt
   User                       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)

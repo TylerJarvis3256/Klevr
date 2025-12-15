@@ -74,12 +74,52 @@ export async function POST(req: NextRequest) {
 
     const { parsed_resume } = parsed.data
 
-    // 3. Update profile with confirmed parsed resume
+    // 3. Fetch current profile to get existing skills
+    const currentProfile = await prisma.profile.findUnique({
+      where: { user_id: user.id },
+      select: { skills: true },
+    })
+
+    if (!currentProfile) {
+      return NextResponse.json(
+        { error: 'Profile not found' },
+        { status: 404 }
+      )
+    }
+
+    // 4. Extract skills from parsed resume
+    const resumeSkills = [
+      ...parsed_resume.skills.languages,
+      ...parsed_resume.skills.frameworks,
+      ...parsed_resume.skills.tools,
+      ...parsed_resume.skills.other,
+    ]
+
+    // 5. Merge with existing skills (preserve manual edits, remove duplicates)
+    const allSkills = [...currentProfile.skills, ...resumeSkills]
+
+    // Remove duplicates using case-insensitive comparison
+    const uniqueSkills: string[] = []
+    const seen = new Set<string>()
+
+    for (const skill of allSkills) {
+      const trimmedSkill = skill.trim()
+      if (!trimmedSkill) continue
+
+      const lowerSkill = trimmedSkill.toLowerCase()
+      if (!seen.has(lowerSkill)) {
+        seen.add(lowerSkill)
+        uniqueSkills.push(trimmedSkill) // Preserve original case
+      }
+    }
+
+    // 6. Update profile with confirmed parsed resume and merged skills
     const profile = await prisma.profile.update({
       where: { user_id: user.id },
       data: {
         parsed_resume: parsed_resume as any,
         parsed_resume_confirmed_at: new Date(),
+        skills: uniqueSkills,
       },
     })
 

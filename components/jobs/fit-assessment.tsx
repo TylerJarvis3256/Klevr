@@ -1,10 +1,13 @@
 'use client'
 
+import { useState } from 'react'
 import type { Application, AiTask } from '@prisma/client'
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react'
+import { Loader2, CheckCircle2, XCircle, AlertCircle, Plus } from 'lucide-react'
 import { FitBadge } from './fit-badge'
 import { useSSETask } from '@/lib/hooks/use-sse-task'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { toast } from 'sonner'
 
 interface FitAssessmentProps {
   application: Application
@@ -13,6 +16,8 @@ interface FitAssessmentProps {
 
 export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
   const router = useRouter()
+  const [addingSkill, setAddingSkill] = useState<string | null>(null)
+  const [isRescoring, setIsRescoring] = useState(false)
 
   // Listen for task completion and refresh when done
   const { status } = useSSETask(
@@ -22,6 +27,70 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
       router.refresh()
     }
   )
+
+  // Handle adding a skill to profile
+  async function handleAddSkill(skill: string) {
+    setAddingSkill(skill)
+    try {
+      // Fetch current profile
+      const profileRes = await fetch('/api/profile')
+      if (!profileRes.ok) throw new Error('Failed to fetch profile')
+
+      const { profile } = await profileRes.json()
+      const currentSkills = profile.skills || []
+
+      // Check if skill already exists (case-insensitive)
+      const skillExists = currentSkills.some(
+        (s: string) => s.toLowerCase() === skill.toLowerCase()
+      )
+
+      if (skillExists) {
+        toast.info('Skill already in your profile')
+        setAddingSkill(null)
+        return
+      }
+
+      // Add skill to profile
+      const updateRes = await fetch('/api/profile/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skills: [...currentSkills, skill] }),
+      })
+
+      if (!updateRes.ok) throw new Error('Failed to update skills')
+
+      toast.success(`Added "${skill}" to your profile`)
+      router.refresh()
+    } catch (error) {
+      toast.error('Failed to add skill to profile')
+    } finally {
+      setAddingSkill(null)
+    }
+  }
+
+  // Handle re-scoring
+  async function handleRescore() {
+    setIsRescoring(true)
+    try {
+      const res = await fetch('/api/ai/job-scoring', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: application.id }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Failed to re-score')
+      }
+
+      toast.success('Re-assessment started. This may take a minute...')
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to start re-assessment')
+    } finally {
+      setIsRescoring(false)
+    }
+  }
 
   // Show loading state if task is in progress
   if (!application.fit_bucket && (aiTask?.status === 'PENDING' || aiTask?.status === 'RUNNING')) {
@@ -83,7 +152,7 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
         </div>
 
         {/* Matching and Missing Skills */}
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           {/* Matching Skills */}
           {application.matching_skills && application.matching_skills.length > 0 && (
             <div className="bg-white rounded-xl border border-secondary/10 p-6">
@@ -101,22 +170,95 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
             </div>
           )}
 
-          {/* Skills to Develop */}
-          {application.missing_skills && application.missing_skills.length > 0 && (
+          {/* Required Skills to Develop */}
+          {application.missing_required_skills && application.missing_required_skills.length > 0 && (
             <div className="bg-white rounded-xl border border-secondary/10 p-6">
               <h3 className="font-lora font-semibold mb-3 flex items-center gap-2 text-secondary">
                 <XCircle className="w-5 h-5 text-orange-600" />
-                Skills to Develop
+                Required Skills to Develop
               </h3>
-              <ul className="space-y-1">
-                {application.missing_skills.map((skill, i) => (
-                  <li key={i} className="text-sm text-secondary/80">
-                    • {skill}
+              <ul className="space-y-2">
+                {application.missing_required_skills.map((skill, i) => (
+                  <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                    <span>• {skill}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAddSkill(skill)}
+                      disabled={addingSkill === skill}
+                      className="h-7 px-2 text-xs"
+                    >
+                      {addingSkill === skill ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add
+                        </>
+                      )}
+                    </Button>
                   </li>
                 ))}
               </ul>
             </div>
           )}
+
+          {/* Preferred Skills to Consider */}
+          {application.missing_preferred_skills && application.missing_preferred_skills.length > 0 && (
+            <div className="bg-white rounded-xl border border-secondary/10 p-6">
+              <h3 className="font-lora font-semibold mb-3 flex items-center gap-2 text-secondary">
+                <AlertCircle className="w-5 h-5 text-blue-600" />
+                Skills to Consider
+              </h3>
+              <ul className="space-y-2">
+                {application.missing_preferred_skills.map((skill, i) => (
+                  <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                    <span>• {skill}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleAddSkill(skill)}
+                      disabled={addingSkill === skill}
+                      className="h-7 px-2 text-xs"
+                    >
+                      {addingSkill === skill ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add
+                        </>
+                      )}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Re-assessment Button */}
+        <div className="flex justify-end pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleRescore}
+            disabled={isRescoring}
+          >
+            {isRescoring ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Re-assessing...
+              </>
+            ) : (
+              <>
+                Re-assess Fit
+                {application.score_count > 1 && ' (uses AI credit)'}
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>

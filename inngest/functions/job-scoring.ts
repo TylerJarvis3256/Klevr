@@ -96,7 +96,8 @@ export const jobScoringFunction = inngest.createFunction(
             job_types: profile.job_types || [],
             preferred_locations: profile.preferred_locations || [],
           },
-          application.Job.location || undefined
+          application.Job.location || undefined,
+          profile.skills || []
         )
       })
 
@@ -122,7 +123,12 @@ export const jobScoringFunction = inngest.createFunction(
             fit_score: fitScore.fit_score,
             score_explanation: explanation,
             matching_skills: fitScore.skills_match.matching_skills,
-            missing_skills: fitScore.skills_match.missing_required_skills,
+            missing_skills: fitScore.skills_match.missing_required_skills, // Keep for backwards compatibility
+            missing_required_skills: fitScore.skills_match.missing_required_skills,
+            missing_preferred_skills: fitScore.skills_match.missing_preferred_skills,
+            score_count: {
+              increment: 1,
+            },
           },
         })
       })

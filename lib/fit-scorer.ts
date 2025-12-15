@@ -26,10 +26,12 @@ export function calculateFitScore(
     job_types: string[]
     preferred_locations: string[]
   },
-  jobLocation?: string
+  jobLocation?: string,
+  profileSkills?: string[]
 ): FitScore {
   // 1. Skills Match (0.0 - 0.5)
-  const allUserSkills = [
+  // Use profile skills if provided, otherwise extract from resume
+  const allUserSkills = profileSkills || [
     ...(resume.skills.languages || []),
     ...(resume.skills.frameworks || []),
     ...(resume.skills.tools || []),

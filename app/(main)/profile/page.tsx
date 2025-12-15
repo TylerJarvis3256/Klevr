@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { LocationInput } from '@/components/forms/location-input'
+import { SkillsInput } from '@/components/forms/skills-input'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -26,6 +27,7 @@ const profileSchema = z.object({
   graduation_year: z.number().int().min(2020).max(2035),
   job_types: z.array(z.string()).min(1, 'Select at least one job type'),
   preferred_locations: z.array(z.string()).min(1, 'Add at least one location'),
+  skills: z.array(z.string()),
 })
 
 type ProfileFormData = z.infer<typeof profileSchema>
@@ -43,6 +45,7 @@ export default function ProfilePage() {
       graduation_year: new Date().getFullYear() + 1,
       job_types: [],
       preferred_locations: [],
+      skills: [],
     },
   })
 
@@ -63,6 +66,7 @@ export default function ProfilePage() {
             graduation_year: data.profile.graduation_year || new Date().getFullYear() + 1,
             job_types: data.profile.job_types || [],
             preferred_locations: data.profile.preferred_locations || [],
+            skills: data.profile.skills || [],
           })
           setResumeInfo({
             fileName: data.profile.resume_file_name,
@@ -121,6 +125,26 @@ export default function ProfilePage() {
       toast.success('Preferences updated successfully')
     } catch (error) {
       toast.error('Failed to update preferences')
+    }
+  }
+
+  async function onSubmitSkills(data: ProfileFormData) {
+    try {
+      const res = await fetch('/api/profile/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          skills: data.skills,
+        }),
+      })
+
+      if (!res.ok) {
+        throw new Error('Failed to update')
+      }
+
+      toast.success('Skills updated successfully')
+    } catch (error) {
+      toast.error('Failed to update skills')
     }
   }
 
@@ -258,6 +282,40 @@ export default function ProfilePage() {
               <div className="flex justify-end">
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? 'Saving...' : 'Save Preferences'}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </section>
+
+        {/* Skills */}
+        <section className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
+          <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">Skills</h2>
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmitSkills)}
+              className="space-y-6"
+            >
+              <FormField
+                control={form.control}
+                name="skills"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Your Skills</FormLabel>
+                    <FormControl>
+                      <SkillsInput
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={form.formState.isSubmitting}>
+                  {form.formState.isSubmitting ? 'Saving...' : 'Save Skills'}
                 </Button>
               </div>
             </form>
