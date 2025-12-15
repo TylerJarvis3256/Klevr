@@ -17,6 +17,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
+    "postinstall": "prisma generate",
     "prepare": "husky"
   },
   "dependencies": {
