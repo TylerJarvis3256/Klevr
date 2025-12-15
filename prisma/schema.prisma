@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model AiTask {
+  id             String       @id @default(cuid())
+  user_id        String
+  application_id String?
+  type           AiTaskType
+  status         AiTaskStatus @default(PENDING)
+  result_ref     String?
+  error_message  String?
+  created_at     DateTime     @default(now())
+  updated_at     DateTime     @updatedAt
+  started_at     DateTime?
+  completed_at   DateTime?
+  Application    Application? @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  User           User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([application_id])
+  @@index([created_at])
+  @@index([status])
+  @@index([type])
+  @@index([user_id])
+}
+
+model Application {
+  id                String              @id @default(cuid())
+  user_id           String
+  job_id            String
+  status            ApplicationStatus   @default(PLANNED)
+  applied_at        DateTime?
+  fit_bucket        FitBucket?
+  fit_score         Float?
+  score_explanation String?
+  matching_skills   String[]
+  missing_skills    String[]
+  company_research  Json?
+  created_at        DateTime            @default(now())
+  updated_at        DateTime            @updatedAt
+  AiTask            AiTask[]
+  Job               Job                 @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  User              User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  GeneratedDocument GeneratedDocument[]
+  Note              Note[]
+
+  @@index([created_at])
+  @@index([fit_bucket])
+  @@index([job_id])
+  @@index([status])
+  @@index([user_id])
+}
+
+model GeneratedDocument {
+  id              String       @id @default(cuid())
+  application_id  String
+  type            DocumentType
+  storage_url     String
+  structured_data Json?
+  prompt_version  String
+  model_used      String
+  tokens_used     Int?
+  created_at      DateTime     @default(now())
+  Application     Application  @relation(fields: [application_id], references: [id], onDelete: Cascade)
+
+  @@index([application_id])
+  @@index([created_at])
+  @@index([type])
+}
+
+model Job {
+  id                     String        @id @default(cuid())
+  user_id                String
+  title                  String
+  company                String
+  location               String?
+  job_url                String?
+  job_description_raw    String
+  job_description_parsed Json?
+  created_at             DateTime      @default(now())
+  updated_at             DateTime      @updatedAt
+  Application            Application[]
+  User                   User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([company])
+  @@index([created_at])
+  @@index([user_id])
+}
+
+model Note {
+  id             String      @id @default(cuid())
+  application_id String
+  content        String
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+  Application    Application @relation(fields: [application_id], references: [id], onDelete: Cascade)
+
+  @@index([application_id])
+  @@index([created_at])
+}
+
+model Profile {
+  id                         String    @id @default(cuid())
+  user_id                    String    @unique
+  full_name                  String?
+  school                     String?
+  major                      String?
+  graduation_year            Int?
+  resume_file_url            String?
+  resume_file_name           String?
+  resume_uploaded_at         DateTime?
+  parsed_resume              Json?
+  parsed_resume_confirmed_at DateTime?
+  job_types                  String[]
+  preferred_locations        String[]
+  created_at                 DateTime  @default(now())
+  updated_at                 DateTime  @updatedAt
+  User                       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+}
+
+model UsageTracking {
+  id                 String   @id @default(cuid())
+  user_id            String
+  month              String
+  fit_count          Int      @default(0)
+  resume_count       Int      @default(0)
+  cover_letter_count Int      @default(0)
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@unique([user_id, month])
+  @@index([month])
+  @@index([user_id])
+}
+
+model User {
+  id          String        @id @default(cuid())
+  auth0_id    String        @unique
+  email       String        @unique
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  AiTask      AiTask[]
+  Application Application[]
+  Job         Job[]
+  Profile     Profile?
+
+  @@index([auth0_id])
+  @@index([email])
+}
+
+enum AiTaskStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum AiTaskType {
+  JOB_SCORING
+  RESUME_GENERATION
+  COVER_LETTER_GENERATION
+  COMPANY_RESEARCH
+}
+
+enum ApplicationStatus {
+  PLANNED
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+}
+
+enum FitBucket {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}

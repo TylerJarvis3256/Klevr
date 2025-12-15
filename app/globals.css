@@ -1,0 +1,19 @@
+@import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;600;700&family=Open+Sans:wght@300;400;500;600;700&display=swap');
+
+@theme {
+  --color-primary: #EEEBD9;
+  --color-secondary: #282427;
+  --color-accent-orange: #EE7B30;
+  --color-accent-teal: #2292A4;
+  --color-border: #E5E7EB;
+  --color-input: #D1D5DB;
+  --color-ring: #2292A4;
+  --color-background: #FFFFFF;
+  --color-foreground: #282427;
+  --color-error: #DC2626;
+  --color-warning: #F59E0B;
+  --color-success: #16A34A;
+  --color-muted: #F3F4F6;
+  --color-muted-foreground: #6B7280;
+}
