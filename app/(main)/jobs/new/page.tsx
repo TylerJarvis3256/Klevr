@@ -58,6 +58,14 @@ export default function NewJobPage() {
 
       toast.success('Job added successfully!', {
         description: "We're analyzing the fit for this role.",
+        action: {
+          label: 'Add Another',
+          onClick: () => {
+            form.reset()
+            router.push('/jobs/new')
+          },
+        },
+        duration: 5000,
       })
 
       router.push(`/jobs/${job.id}`)
