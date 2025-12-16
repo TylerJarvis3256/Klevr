@@ -42,7 +42,7 @@ export async function logActivity(params: LogActivityParams): Promise<boolean> {
         user_id: params.user_id,
         application_id: params.application_id,
         type: params.type,
-        metadata: params.metadata || null,
+        metadata: params.metadata ?? undefined,
       },
     })
     return true

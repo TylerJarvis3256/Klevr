@@ -164,7 +164,6 @@ export default function ProfilePage() {
 
     try {
       // Find projects to create, update, and delete
-      const existingIds = new Set(oldProjects.map(p => p.id))
       const newIds = new Set(updatedProjects.map(p => p.id))
 
       // Projects to create (temp IDs)

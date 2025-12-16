@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { Job, JobSource } from '@prisma/client'
+import type { Job } from '@prisma/client'
 import {
   Dialog,
   DialogContent,

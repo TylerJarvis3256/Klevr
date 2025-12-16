@@ -28,19 +28,17 @@ import { cn } from '@/lib/utils'
 
 const projectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(200),
-  description: z.string().max(1000).or(z.literal('')).nullable().optional(),
-  technologies: z.array(z.string()).default([]),
-  date_range: z.string().max(100).or(z.literal('')).nullable().optional(),
+  description: z.string().max(1000).optional().or(z.literal('')),
+  technologies: z.array(z.string()),
+  date_range: z.string().max(100).optional().or(z.literal('')),
   url: z
     .string()
-    .nullable()
     .optional()
     .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
       message: 'Must be a valid URL',
     }),
   github_link: z
     .string()
-    .nullable()
     .optional()
     .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
       message: 'Must be a valid URL',
