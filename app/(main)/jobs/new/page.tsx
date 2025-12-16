@@ -47,7 +47,7 @@ const jobSchema = z.object({
     'COMPANY_WEBSITE',
     'REFERRAL',
     'OTHER',
-  ], { required_error: 'Please select where you found this job' }),
+  ], { message: 'Please select where you found this job' }),
   job_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   job_description_raw: z.string().min(10, 'Job description is required'),
 })
