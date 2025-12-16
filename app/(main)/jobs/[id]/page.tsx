@@ -2,12 +2,7 @@ import { notFound } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { JobHeader } from '@/components/jobs/job-header'
-import { JobDescription } from '@/components/jobs/job-description'
-import { FitAssessment } from '@/components/jobs/fit-assessment'
-import { CompanyResearch } from '@/components/jobs/company-research'
-import { DocumentsList } from '@/components/jobs/documents-list'
-import { NotesList } from '@/components/jobs/notes-list'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { JobTabs } from '@/components/jobs/job-tabs'
 
 interface JobDetailPageProps {
   params: Promise<{ id: string }>
@@ -62,43 +57,13 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
     <div className="max-w-5xl">
       <JobHeader job={job} application={application} />
 
-      <Tabs defaultValue="description" className="mt-8">
-        <TabsList className="bg-white border border-secondary/10 p-1 rounded-xl">
-          <TabsTrigger value="description">Description</TabsTrigger>
-          <TabsTrigger value="fit">Fit & Insights</TabsTrigger>
-          <TabsTrigger value="company">Company Research</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="notes">Notes</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="description" className="mt-6">
-          <JobDescription job={job} />
-        </TabsContent>
-
-        <TabsContent value="fit" className="mt-6">
-          <FitAssessment application={application} aiTask={latestScoringTask} />
-        </TabsContent>
-
-        <TabsContent value="company" className="mt-6">
-          <CompanyResearch
-            application={application}
-            company={job.company}
-            researchTask={researchTask}
-          />
-        </TabsContent>
-
-        <TabsContent value="documents" className="mt-6">
-          <DocumentsList
-            documents={application.GeneratedDocument}
-            applicationId={application.id}
-            documentTasks={documentTasks}
-          />
-        </TabsContent>
-
-        <TabsContent value="notes" className="mt-6">
-          <NotesList notes={application.Note} applicationId={application.id} />
-        </TabsContent>
-      </Tabs>
+      <JobTabs
+        job={job}
+        application={application}
+        latestScoringTask={latestScoringTask}
+        researchTask={researchTask}
+        documentTasks={documentTasks}
+      />
     </div>
   )
 }

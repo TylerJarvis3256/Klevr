@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { Application, AiTask } from '@prisma/client'
 import { Button } from '@/components/ui/button'
-import { AlertCircle, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useSSETask } from '@/lib/hooks/use-sse-task'
@@ -164,14 +164,17 @@ export function CompanyResearch({ application, company, researchTask }: CompanyR
 
       {/* Regenerate button */}
       <div className="flex justify-end">
-        <Button onClick={handleGenerate} disabled={isGenerating} variant="ghost">
+        <Button onClick={handleGenerate} disabled={isGenerating} variant="outline" size="sm" className="gap-2">
           {isGenerating ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               Regenerating...
             </>
           ) : (
-            'Regenerate Research'
+            <>
+              <RefreshCw className="h-4 w-4" />
+              Regenerate Research
+            </>
           )}
         </Button>
       </div>

@@ -66,7 +66,7 @@ export function DocumentsList({
         throw new Error(error.error || 'Failed to generate resume')
       }
 
-      toast.success('Resume generation started! This may take 30-60 seconds.')
+      // No toast here - success toast will show when generation completes
 
       // Wait a bit then refresh to show the new task
       setTimeout(() => {

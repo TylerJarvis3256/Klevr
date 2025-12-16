@@ -31,10 +31,11 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   const now = new Date()
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  // Applications created this month
+  // Applications created this month that have been applied to (excludes PLANNED)
   const thisMonthApps = applications.filter(app => {
     const appMonth = `${app.created_at.getFullYear()}-${String(app.created_at.getMonth() + 1).padStart(2, '0')}`
-    return appMonth === currentMonth
+    const isAppliedOrFurther = app.status !== ApplicationStatus.PLANNED
+    return appMonth === currentMonth && isAppliedOrFurther
   })
 
   // Applications that have been applied to (not just planned)

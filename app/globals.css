@@ -16,4 +16,8 @@
   --color-success: #16A34A;
   --color-muted: #F3F4F6;
   --color-muted-foreground: #6B7280;
+  --color-popover: #FFFFFF;
+  --color-popover-foreground: #282427;
+  --color-accent: #F3F4F6;
+  --color-accent-foreground: #282427;
 }
