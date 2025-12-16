@@ -77,7 +77,8 @@ export const coverLetterGenerationFunction = inngest.createFunction(
           userId,
           application.User.Profile!.full_name || 'Your Name',
           application.User.Profile!.parsed_resume as unknown as ParsedResume,
-          application.Job as any
+          application.Job as any,
+          application.User.Profile!.skills || []
         )
       })
 

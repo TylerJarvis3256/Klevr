@@ -14,7 +14,7 @@ Generate a tailored resume optimized for a specific job posting.
 {
 "user_resume": { /_ ParsedResume structure _/ },
 "job": { /_ Job and parsed job description _/ },
-"preferences": { /_ User preferences _/ }
+"profile_skills": [ /_ User's current skills from profile (authoritative source) _/ ]
 }
 
 ## Output Format (JSON)
@@ -56,18 +56,20 @@ Generate a tailored resume optimized for a specific job posting.
 
 ## Instructions
 
-1. **Tailor experience bullets** to highlight skills matching the job requirements
-2. **Reorder and emphasize** relevant experiences first
-3. **Add quantified results** where possible (% improvements, scale, impact)
-4. **Match keywords** from job description naturally
-5. **Highlight relevant coursework** and projects
-6. **Keep professional tone** - no exaggeration
-7. **Skills section** should prioritize job-required skills
-8. **Summary** should position candidate for THIS specific role
-9. Return ONLY valid JSON
+1. **Use profile_skills as authoritative source** - These are the user's current skills, prioritize them over skills listed in user_resume
+2. **Tailor experience bullets** to highlight skills matching the job requirements
+3. **Reorder and emphasize** relevant experiences first
+4. **Add quantified results** where possible (% improvements, scale, impact)
+5. **Match keywords** from job description naturally
+6. **Highlight relevant coursework** and projects
+7. **Keep professional tone** - no exaggeration
+8. **Skills section** should prioritize job-required skills from profile_skills
+9. **Summary** should position candidate for THIS specific role
+10. Return ONLY valid JSON
 
 ## Guidelines for Tailoring
 
+- **Use profile_skills as the primary source for skills** - These are more current than user_resume.skills
 - Draw from the user's actual experience, education, skills, and projects
 - Emphasize experiences and skills that align with the job requirements
 - Reword bullet points to highlight relevant achievements

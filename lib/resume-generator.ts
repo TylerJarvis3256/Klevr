@@ -33,7 +33,8 @@ export async function generateResumeContent(
   userId: string,
   userResume: ParsedResume,
   job: Job,
-  jobParsed: any
+  jobParsed: any,
+  profileSkills?: string[]
 ): Promise<GeneratedResumeContent> {
   const { content: prompt, metadata } = await loadPrompt('resume', 'generate-v1')
 
@@ -44,6 +45,7 @@ export async function generateResumeContent(
       company: job.company,
       description: jobParsed,
     },
+    profile_skills: profileSkills || [],
   }
 
   const completion = await callOpenAI(

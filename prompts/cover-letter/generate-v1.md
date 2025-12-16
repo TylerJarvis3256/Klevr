@@ -18,7 +18,8 @@ Generate a professional, personalized cover letter.
 "title": "Job Title",
 "company": "Company Name",
 "description": "..."
-}
+},
+"profile_skills": [ /_ User's current skills from profile (authoritative source) _/ ]
 }
 
 ## Output Format (Plain Text)
@@ -48,6 +49,7 @@ Generate a professional, personalized cover letter.
 
 ## Guidelines
 
+- **Use profile_skills when highlighting qualifications** - These are the user's current skills, more accurate than user_resume.skills
 - Length: 250-350 words (3-4 paragraphs)
 - Tone: Professional, enthusiastic, confident
 - Use "I" statements but focus on value to employer
@@ -55,6 +57,7 @@ Generate a professional, personalized cover letter.
 - Match energy to company culture (formal vs startup)
 - No fabrication - use only provided experience
 - Natural keyword integration
+- Reference skills from profile_skills when discussing your qualifications
 
 ## Example Opening
 

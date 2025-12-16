@@ -77,7 +77,8 @@ export const resumeGenerationFunction = inngest.createFunction(
           userId,
           application.User.Profile!.parsed_resume as unknown as ParsedResume,
           application.Job as any,
-          application.Job.job_description_parsed || {}
+          application.Job.job_description_parsed || {},
+          application.User.Profile!.skills || []
         )
       })
 
