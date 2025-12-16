@@ -27,6 +27,8 @@ export function DocumentsList({
   const [downloadingId, setDownloadingId] = useState<string | null>(null)
   const [previewDocument, setPreviewDocument] = useState<GeneratedDocument | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [editingDocId, setEditingDocId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
 
   // Find in-progress resume and cover letter generation tasks
   const resumeTask = documentTasks.find(
@@ -176,6 +178,31 @@ export function DocumentsList({
     }
   }
 
+  const handleSaveDocumentName = async (documentId: string) => {
+    if (!editName.trim()) {
+      setEditingDocId(null)
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/documents/${documentId}/rename`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: editName }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update name')
+      }
+
+      setEditingDocId(null)
+      router.refresh()
+      toast.success('Name updated')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update name')
+    }
+  }
+
   // Filter out deleted documents
   const resumeDocs = documents.filter(d => d.type === 'RESUME' && !d.deleted_at)
   const coverLetterDocs = documents.filter(d => d.type === 'COVER_LETTER' && !d.deleted_at)
@@ -258,7 +285,31 @@ export function DocumentsList({
                   <div>
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-accent-teal" />
-                      <p className="font-medium text-secondary">{doc.display_name || 'Tailored Resume'}</p>
+                      {editingDocId === doc.id ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={() => handleSaveDocumentName(doc.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveDocumentName(doc.id)
+                            if (e.key === 'Escape') setEditingDocId(null)
+                          }}
+                          className="font-medium border-b border-accent-teal focus:outline-none bg-transparent text-secondary"
+                          autoFocus
+                          maxLength={200}
+                        />
+                      ) : (
+                        <p
+                          className="font-medium text-secondary cursor-pointer hover:text-accent-teal"
+                          onClick={() => {
+                            setEditingDocId(doc.id)
+                            setEditName(doc.display_name || 'Tailored Resume')
+                          }}
+                        >
+                          {doc.display_name || 'Tailored Resume'}
+                        </p>
+                      )}
                     </div>
                     <p className="text-sm text-secondary/60 mt-1">
                       Generated {formatDate(doc.created_at)}
@@ -338,7 +389,31 @@ export function DocumentsList({
                   <div>
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-accent-orange" />
-                      <p className="font-medium text-secondary">{doc.display_name || 'Tailored Cover Letter'}</p>
+                      {editingDocId === doc.id ? (
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          onBlur={() => handleSaveDocumentName(doc.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveDocumentName(doc.id)
+                            if (e.key === 'Escape') setEditingDocId(null)
+                          }}
+                          className="font-medium border-b border-accent-orange focus:outline-none bg-transparent text-secondary"
+                          autoFocus
+                          maxLength={200}
+                        />
+                      ) : (
+                        <p
+                          className="font-medium text-secondary cursor-pointer hover:text-accent-orange"
+                          onClick={() => {
+                            setEditingDocId(doc.id)
+                            setEditName(doc.display_name || 'Tailored Cover Letter')
+                          }}
+                        >
+                          {doc.display_name || 'Tailored Cover Letter'}
+                        </p>
+                      )}
                     </div>
                     <p className="text-sm text-secondary/60 mt-1">
                       Generated {formatDate(doc.created_at)}
