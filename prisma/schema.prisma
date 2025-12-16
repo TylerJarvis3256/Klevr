@@ -50,6 +50,7 @@ model Application {
   User              User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   GeneratedDocument GeneratedDocument[]
   Note              Note[]
+  ActivityLog       ActivityLog[]
 
   @@index([created_at])
   @@index([fit_bucket])
@@ -84,6 +85,7 @@ model Job {
   company                String
   location               String?
   job_url                String?
+  job_source             JobSource?
   job_description_raw    String
   job_description_parsed Json?
   created_at             DateTime      @default(now())
@@ -146,6 +148,40 @@ model UsageTracking {
   @@index([user_id])
 }
 
+model Project {
+  id            String   @id @default(cuid())
+  user_id       String
+  name          String
+  description   String?
+  technologies  String[] @default([])
+  date_range    String?
+  url           String?
+  github_link   String?
+  display_order Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  User          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([display_order])
+}
+
+model ActivityLog {
+  id             String       @id @default(cuid())
+  user_id        String
+  application_id String
+  type           ActivityType
+  metadata       Json?
+  created_at     DateTime     @default(now())
+  User           User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  Application    Application  @relation(fields: [application_id], references: [id], onDelete: Cascade)
+
+  @@index([application_id])
+  @@index([user_id])
+  @@index([type])
+  @@index([created_at])
+}
+
 model User {
   id          String        @id @default(cuid())
   auth0_id    String        @unique
@@ -156,6 +192,8 @@ model User {
   Application Application[]
   Job         Job[]
   Profile     Profile?
+  Project     Project[]
+  ActivityLog ActivityLog[]
 
   @@index([auth0_id])
   @@index([email])
@@ -193,4 +231,27 @@ enum FitBucket {
   GOOD
   FAIR
   POOR
+}
+
+enum JobSource {
+  LINKEDIN
+  INDEED
+  GLASSDOOR
+  HANDSHAKE
+  COMPANY_WEBSITE
+  REFERRAL
+  OTHER
+}
+
+enum ActivityType {
+  STATUS_CHANGED
+  JOB_CREATED
+  JOB_SCORING_STARTED
+  JOB_SCORING_COMPLETED
+  RESUME_GENERATED
+  COVER_LETTER_GENERATED
+  COMPANY_RESEARCH_COMPLETED
+  NOTE_ADDED
+  NOTE_EDITED
+  DOCUMENT_DELETED
 }

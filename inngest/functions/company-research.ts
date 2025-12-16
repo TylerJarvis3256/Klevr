@@ -1,6 +1,7 @@
 import { inngest } from '@/lib/inngest'
 import { prisma } from '@/lib/prisma'
 import { generateCompanyResearch } from '@/lib/company-researcher'
+import { logAiTaskComplete } from '@/lib/activity-log'
 import { AiTaskStatus } from '@prisma/client'
 
 export const companyResearchFunction = inngest.createFunction(
@@ -59,7 +60,7 @@ export const companyResearchFunction = inngest.createFunction(
         })
       })
 
-      // Step 5: Mark success
+      // Step 5: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
           where: { id: taskId },
@@ -69,6 +70,13 @@ export const companyResearchFunction = inngest.createFunction(
             result_ref: applicationId, // Reference to the application with updated research
           },
         })
+
+        // Log company research completed
+        await logAiTaskComplete(
+          userId,
+          applicationId,
+          'COMPANY_RESEARCH_COMPLETED'
+        )
       })
 
       return { success: true }

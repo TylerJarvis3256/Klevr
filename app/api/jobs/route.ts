@@ -2,13 +2,23 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { logActivity } from '@/lib/activity-log'
 
 const createJobSchema = z.object({
   title: z.string().min(1, 'Job title is required'),
   company: z.string().min(1, 'Company name is required'),
-  job_description_raw: z.string().min(1, 'Job description is required'),
-  job_url: z.string().url().optional().or(z.literal('')),
   location: z.string().optional(),
+  job_source: z.enum([
+    'LINKEDIN',
+    'INDEED',
+    'GLASSDOOR',
+    'HANDSHAKE',
+    'COMPANY_WEBSITE',
+    'REFERRAL',
+    'OTHER',
+  ]),
+  job_url: z.string().url().optional().or(z.literal('')),
+  job_description_raw: z.string().min(1, 'Job description is required'),
 })
 
 export async function POST(request: Request) {
@@ -49,9 +59,10 @@ export async function POST(request: Request) {
           user_id: user.id,
           title: data.title,
           company: data.company,
-          job_description_raw: data.job_description_raw,
-          job_url: data.job_url || null,
           location: data.location || null,
+          job_source: data.job_source,
+          job_url: data.job_url || null,
+          job_description_raw: data.job_description_raw,
         },
       })
 
@@ -64,6 +75,13 @@ export async function POST(request: Request) {
       })
 
       return { job, application }
+    })
+
+    // Log job creation activity
+    await logActivity({
+      user_id: user.id,
+      application_id: result.application.id,
+      type: 'JOB_CREATED',
     })
 
     // Trigger fit assessment asynchronously

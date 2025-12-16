@@ -4,6 +4,7 @@ import { parseJobDescription } from '@/lib/job-parser'
 import { calculateFitScore } from '@/lib/fit-scorer'
 import { generateFitExplanation } from '@/lib/fit-explainer'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
+import { logActivity } from '@/lib/activity-log'
 import { AiTaskStatus } from '@prisma/client'
 import { ParsedResume } from '@/lib/resume-parser'
 
@@ -36,7 +37,7 @@ export const jobScoringFunction = inngest.createFunction(
       throw new Error('Job scoring limit exceeded for this month')
     }
 
-    // Step 2: Mark running
+    // Step 2: Mark running and log activity
     await step.run('mark-running', async () => {
       await prisma.aiTask.update({
         where: { id: taskId },
@@ -44,6 +45,13 @@ export const jobScoringFunction = inngest.createFunction(
           status: AiTaskStatus.RUNNING,
           started_at: new Date(),
         },
+      })
+
+      // Log scoring started
+      await logActivity({
+        user_id: userId,
+        application_id: applicationId,
+        type: 'JOB_SCORING_STARTED',
       })
     })
 
@@ -138,7 +146,7 @@ export const jobScoringFunction = inngest.createFunction(
         await incrementUsage(userId, 'JOB_SCORING')
       })
 
-      // Step 10: Mark success
+      // Step 10: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
           where: { id: taskId },
@@ -146,6 +154,17 @@ export const jobScoringFunction = inngest.createFunction(
             status: AiTaskStatus.SUCCEEDED,
             completed_at: new Date(),
             result_ref: applicationId,
+          },
+        })
+
+        // Log scoring completed
+        await logActivity({
+          user_id: userId,
+          application_id: applicationId,
+          type: 'JOB_SCORING_COMPLETED',
+          metadata: {
+            fit_bucket: fitScore.fit_bucket,
+            fit_score: fitScore.fit_score,
           },
         })
       })

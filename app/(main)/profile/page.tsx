@@ -10,6 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { MultiSelect } from '@/components/ui/multi-select'
 import { LocationInput } from '@/components/forms/location-input'
 import { SkillsInput } from '@/components/forms/skills-input'
+import { ProjectsInput, type Project } from '@/components/forms/projects-input'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
@@ -35,6 +36,7 @@ type ProfileFormData = z.infer<typeof profileSchema>
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [resumeInfo, setResumeInfo] = useState<any>(null)
+  const [projects, setProjects] = useState<Project[]>([])
 
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -73,6 +75,13 @@ export default function ProfilePage() {
             uploadedAt: data.profile.resume_uploaded_at,
             isConfirmed: !!data.profile.parsed_resume_confirmed_at,
           })
+        }
+
+        // Load projects
+        const projectsRes = await fetch('/api/profile/projects')
+        if (projectsRes.ok) {
+          const projectsData = await projectsRes.json()
+          setProjects(projectsData.projects || [])
         }
       } catch (error) {
         toast.error('Failed to load profile')
@@ -145,6 +154,91 @@ export default function ProfilePage() {
       toast.success('Skills updated successfully')
     } catch (error) {
       toast.error('Failed to update skills')
+    }
+  }
+
+  async function onProjectsChange(updatedProjects: Project[]) {
+    // Optimistically update the UI
+    const oldProjects = projects
+    setProjects(updatedProjects)
+
+    try {
+      // Find projects to create, update, and delete
+      const existingIds = new Set(oldProjects.map(p => p.id))
+      const newIds = new Set(updatedProjects.map(p => p.id))
+
+      // Projects to create (temp IDs)
+      const toCreate = updatedProjects.filter(p => p.id.startsWith('temp-'))
+
+      // Projects to update (existing IDs, changed data)
+      const toUpdate = updatedProjects.filter(p => !p.id.startsWith('temp-'))
+
+      // Projects to delete (in old but not in new)
+      const toDelete = oldProjects.filter(p => !newIds.has(p.id))
+
+      // Delete projects
+      for (const project of toDelete) {
+        if (!project.id.startsWith('temp-')) {
+          await fetch(`/api/profile/projects/${project.id}`, {
+            method: 'DELETE',
+          })
+        }
+      }
+
+      // Create new projects
+      for (const project of toCreate) {
+        const res = await fetch('/api/profile/projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: project.name,
+            description: project.description,
+            technologies: project.technologies,
+            date_range: project.date_range,
+            url: project.url,
+            github_link: project.github_link,
+            display_order: project.display_order,
+          }),
+        })
+
+        if (!res.ok) {
+          throw new Error('Failed to create project')
+        }
+      }
+
+      // Update existing projects
+      for (const project of toUpdate) {
+        const res = await fetch(`/api/profile/projects/${project.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: project.name,
+            description: project.description,
+            technologies: project.technologies,
+            date_range: project.date_range,
+            url: project.url,
+            github_link: project.github_link,
+            display_order: project.display_order,
+          }),
+        })
+
+        if (!res.ok) {
+          throw new Error('Failed to update project')
+        }
+      }
+
+      // Reload projects from the server to get real IDs
+      const projectsRes = await fetch('/api/profile/projects')
+      if (projectsRes.ok) {
+        const projectsData = await projectsRes.json()
+        setProjects(projectsData.projects || [])
+      }
+
+      toast.success('Projects updated successfully')
+    } catch (error) {
+      // Revert on error
+      setProjects(oldProjects)
+      toast.error('Failed to update projects')
     }
   }
 
@@ -320,6 +414,20 @@ export default function ProfilePage() {
               </div>
             </form>
           </Form>
+        </section>
+
+        {/* Projects */}
+        <section className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
+          <div className="mb-6">
+            <h2 className="font-lora text-2xl font-semibold text-secondary mb-1">Projects</h2>
+            <p className="text-sm text-secondary/70">
+              Showcase your work and technical achievements
+            </p>
+          </div>
+          <ProjectsInput
+            value={projects}
+            onChange={onProjectsChange}
+          />
         </section>
 
         {/* Resume Information */}

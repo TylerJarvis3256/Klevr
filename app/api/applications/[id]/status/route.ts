@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
+import { logStatusChange } from '@/lib/activity-log'
 
 const updateStatusSchema = z.object({
   status: z.enum(['PLANNED', 'APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED']),
@@ -19,24 +20,40 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { status } = updateStatusSchema.parse(body)
+    const { status: newStatus } = updateStatusSchema.parse(body)
 
-    // Set applied_at timestamp when moving to APPLIED status
-    const updateData: any = { status }
-    if (status === 'APPLIED') {
-      updateData.applied_at = new Date()
-    }
-
-    const application = await prisma.application.updateMany({
+    // Fetch current application to get old status
+    const currentApplication = await prisma.application.findFirst({
       where: {
         id,
         user_id: user.id,
       },
+      select: {
+        status: true,
+      },
+    })
+
+    if (!currentApplication) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+    }
+
+    const oldStatus = currentApplication.status
+
+    // Set applied_at timestamp when moving to APPLIED status
+    const updateData: any = { status: newStatus }
+    if (newStatus === 'APPLIED') {
+      updateData.applied_at = new Date()
+    }
+
+    // Update the application
+    await prisma.application.update({
+      where: { id },
       data: updateData,
     })
 
-    if (application.count === 0) {
-      return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+    // Log status change if status actually changed
+    if (oldStatus !== newStatus) {
+      await logStatusChange(user.id, id, oldStatus, newStatus)
     }
 
     return NextResponse.json({ success: true })

@@ -4,6 +4,7 @@ import { generateCoverLetterContent } from '@/lib/cover-letter-generator'
 import { renderCoverLetterPDF } from '@/lib/pdf/renderer'
 import { uploadBuffer, generateDocumentKey } from '@/lib/s3'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
+import { logAiTaskComplete } from '@/lib/activity-log'
 import { DocumentType, AiTaskStatus } from '@prisma/client'
 import { ParsedResume } from '@/lib/resume-parser'
 
@@ -57,6 +58,11 @@ export const coverLetterGenerationFunction = inngest.createFunction(
             User: {
               include: {
                 Profile: true,
+                Project: {
+                  orderBy: {
+                    display_order: 'asc',
+                  },
+                },
               },
             },
           },
@@ -78,7 +84,8 @@ export const coverLetterGenerationFunction = inngest.createFunction(
           application.User.Profile!.full_name || 'Your Name',
           application.User.Profile!.parsed_resume as unknown as ParsedResume,
           application.Job as any,
-          application.User.Profile!.skills || []
+          application.User.Profile!.skills || [],
+          application.User.Project || []
         )
       })
 
@@ -134,7 +141,7 @@ export const coverLetterGenerationFunction = inngest.createFunction(
         await incrementUsage(userId, 'COVER_LETTER_GENERATION')
       })
 
-      // Step 9: Mark success
+      // Step 9: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
           where: { id: taskId },
@@ -144,6 +151,14 @@ export const coverLetterGenerationFunction = inngest.createFunction(
             result_ref: applicationId,
           },
         })
+
+        // Log cover letter generated
+        await logAiTaskComplete(
+          userId,
+          applicationId,
+          'COVER_LETTER_GENERATED',
+          { document_id: document.id }
+        )
       })
 
       return { documentId: document.id }

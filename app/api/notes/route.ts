@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logActivity } from '@/lib/activity-log'
 import { z } from 'zod'
 
 const createNoteSchema = z.object({
@@ -47,6 +48,14 @@ export async function POST(req: NextRequest) {
         application_id: applicationId,
         content,
       },
+    })
+
+    // Log note added
+    await logActivity({
+      user_id: user.id,
+      application_id: applicationId,
+      type: 'NOTE_ADDED',
+      metadata: { note_id: note.id },
     })
 
     return NextResponse.json(note, { status: 201 })

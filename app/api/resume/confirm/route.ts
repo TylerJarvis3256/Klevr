@@ -123,6 +123,41 @@ export async function POST(req: NextRequest) {
       },
     })
 
+    // 7. Extract and save projects from parsed resume
+    if (parsed_resume.projects && parsed_resume.projects.length > 0) {
+      // Delete existing projects to avoid duplicates
+      await prisma.project.deleteMany({
+        where: { user_id: user.id },
+      })
+
+      // Create new projects from parsed resume
+      const projectsToCreate = parsed_resume.projects.map((project, index) => {
+        // Auto-detect GitHub links
+        let githubLink: string | null = null
+        let projectUrl: string | null = project.url || null
+
+        if (projectUrl && projectUrl.toLowerCase().includes('github.com')) {
+          githubLink = projectUrl
+          projectUrl = null // If it's a GitHub link, don't set it as the project URL
+        }
+
+        return {
+          user_id: user.id,
+          name: project.name,
+          description: project.description || null,
+          technologies: project.technologies || [],
+          date_range: null, // Not provided in parsed resume
+          url: projectUrl,
+          github_link: githubLink,
+          display_order: index,
+        }
+      })
+
+      await prisma.project.createMany({
+        data: projectsToCreate,
+      })
+    }
+
     return NextResponse.json({
       success: true,
       profile: {

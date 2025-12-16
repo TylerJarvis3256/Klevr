@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logActivity } from '@/lib/activity-log'
 import { z } from 'zod'
 
 const updateNoteSchema = z.object({
@@ -53,6 +54,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     const updatedNote = await prisma.note.update({
       where: { id },
       data: { content },
+    })
+
+    // Log note edited
+    await logActivity({
+      user_id: user.id,
+      application_id: note.application_id,
+      type: 'NOTE_EDITED',
+      metadata: { note_id: note.id },
     })
 
     return NextResponse.json(updatedNote)

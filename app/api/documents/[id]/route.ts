@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logActivity } from '@/lib/activity-log'
 
 export async function DELETE(
   _request: NextRequest,
@@ -32,6 +33,17 @@ export async function DELETE(
     await prisma.generatedDocument.update({
       where: { id },
       data: { deleted_at: new Date() },
+    })
+
+    // Log document deleted
+    await logActivity({
+      user_id: user.id,
+      application_id: document.application_id,
+      type: 'DOCUMENT_DELETED',
+      metadata: {
+        document_id: document.id,
+        document_type: document.type,
+      },
     })
 
     return NextResponse.json({ success: true })

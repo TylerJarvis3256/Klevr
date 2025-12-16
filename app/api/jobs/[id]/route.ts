@@ -56,7 +56,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, company, job_description_raw, job_url, location } = body
+    const { title, company, location, job_source, job_url, job_description_raw } = body
 
     const job = await prisma.job.updateMany({
       where: {
@@ -66,9 +66,10 @@ export async function PATCH(
       data: {
         ...(title && { title }),
         ...(company && { company }),
-        ...(job_description_raw && { job_description_raw }),
-        ...(job_url !== undefined && { job_url }),
         ...(location !== undefined && { location }),
+        ...(job_source !== undefined && { job_source }),
+        ...(job_url !== undefined && { job_url }),
+        ...(job_description_raw && { job_description_raw }),
       },
     })
 

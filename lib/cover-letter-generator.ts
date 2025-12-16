@@ -8,7 +8,15 @@ export async function generateCoverLetterContent(
   userName: string,
   userResume: ParsedResume,
   job: Job,
-  profileSkills?: string[]
+  profileSkills?: string[],
+  userProjects?: Array<{
+    name: string
+    description: string | null
+    technologies: string[]
+    date_range: string | null
+    url: string | null
+    github_link: string | null
+  }>
 ): Promise<string> {
   const { content: prompt, metadata } = await loadPrompt('cover-letter', 'generate-v1')
 
@@ -21,6 +29,7 @@ export async function generateCoverLetterContent(
       description: job.job_description_raw,
     },
     profile_skills: profileSkills || [],
+    user_projects: userProjects || [],
   }
 
   const completion = await callOpenAI(

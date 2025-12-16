@@ -4,6 +4,7 @@ import { generateResumeContent } from '@/lib/resume-generator'
 import { renderResumePDF } from '@/lib/pdf/renderer'
 import { uploadBuffer, generateDocumentKey } from '@/lib/s3'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
+import { logAiTaskComplete } from '@/lib/activity-log'
 import { DocumentType, AiTaskStatus } from '@prisma/client'
 import { ParsedResume } from '@/lib/resume-parser'
 
@@ -57,6 +58,11 @@ export const resumeGenerationFunction = inngest.createFunction(
             User: {
               include: {
                 Profile: true,
+                Project: {
+                  orderBy: {
+                    display_order: 'asc',
+                  },
+                },
               },
             },
           },
@@ -78,7 +84,8 @@ export const resumeGenerationFunction = inngest.createFunction(
           application.User.Profile!.parsed_resume as unknown as ParsedResume,
           application.Job as any,
           application.Job.job_description_parsed || {},
-          application.User.Profile!.skills || []
+          application.User.Profile!.skills || [],
+          application.User.Project || []
         )
       })
 
@@ -128,7 +135,7 @@ export const resumeGenerationFunction = inngest.createFunction(
         await incrementUsage(userId, 'RESUME_GENERATION')
       })
 
-      // Step 9: Mark success
+      // Step 9: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
           where: { id: taskId },
@@ -138,6 +145,14 @@ export const resumeGenerationFunction = inngest.createFunction(
             result_ref: applicationId,
           },
         })
+
+        // Log resume generated
+        await logAiTaskComplete(
+          userId,
+          applicationId,
+          'RESUME_GENERATED',
+          { document_id: document.id }
+        )
       })
 
       return { documentId: document.id }

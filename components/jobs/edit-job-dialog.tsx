@@ -1,16 +1,24 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import type { Job, JobSource } from '@prisma/client'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -24,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { Pencil } from 'lucide-react'
 
 const JOB_SOURCES = [
   { value: 'LINKEDIN', label: 'LinkedIn' },
@@ -35,10 +44,10 @@ const JOB_SOURCES = [
   { value: 'OTHER', label: 'Other' },
 ] as const
 
-const jobSchema = z.object({
-  title: z.string().min(1, 'Job title is required'),
-  company: z.string().min(1, 'Company name is required'),
-  location: z.string().optional(),
+const editJobSchema = z.object({
+  title: z.string().min(1, 'Job title is required').max(200),
+  company: z.string().min(1, 'Company name is required').max(200),
+  location: z.string().max(200).optional(),
   job_source: z.enum([
     'LINKEDIN',
     'INDEED',
@@ -47,74 +56,70 @@ const jobSchema = z.object({
     'COMPANY_WEBSITE',
     'REFERRAL',
     'OTHER',
-  ], { required_error: 'Please select where you found this job' }),
+  ]).optional(),
   job_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  job_description_raw: z.string().min(10, 'Job description is required'),
 })
 
-type JobFormData = z.infer<typeof jobSchema>
+type EditJobFormData = z.infer<typeof editJobSchema>
 
-export default function NewJobPage() {
+interface EditJobDialogProps {
+  job: Job
+  trigger?: React.ReactNode
+}
+
+export function EditJobDialog({ job, trigger }: EditJobDialogProps) {
+  const [open, setOpen] = useState(false)
   const router = useRouter()
-  const form = useForm<JobFormData>({
-    resolver: zodResolver(jobSchema),
+
+  const form = useForm<EditJobFormData>({
+    resolver: zodResolver(editJobSchema),
     defaultValues: {
-      title: '',
-      company: '',
-      location: '',
-      job_source: undefined,
-      job_url: '',
-      job_description_raw: '',
+      title: job.title,
+      company: job.company,
+      location: job.location || '',
+      job_source: job.job_source || undefined,
+      job_url: job.job_url || '',
     },
   })
 
-  async function onSubmit(data: JobFormData) {
+  async function onSubmit(data: EditJobFormData) {
     try {
-      const res = await fetch('/api/jobs', {
-        method: 'POST',
+      const res = await fetch(`/api/jobs/${job.id}`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
 
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.error || 'Failed to create job')
+        throw new Error(error.error || 'Failed to update job')
       }
 
-      const { job } = await res.json()
-
-      toast.success('Job added successfully!', {
-        description: "We're analyzing the fit for this role.",
-        action: {
-          label: 'Add Another',
-          onClick: () => {
-            form.reset()
-            router.push('/jobs/new')
-          },
-        },
-        duration: 5000,
-      })
-
-      router.push(`/jobs/${job.id}`)
+      toast.success('Job updated successfully!')
+      setOpen(false)
+      router.refresh()
     } catch (error) {
-      toast.error('Error', {
-        description: error instanceof Error ? error.message : 'Failed to add job',
-      })
+      toast.error(error instanceof Error ? error.message : 'Failed to update job')
     }
   }
 
   return (
-    <div className="max-w-3xl">
-      <div className="mb-8">
-        <h1 className="font-lora text-4xl font-bold text-secondary mb-2">Add a Job</h1>
-        <p className="text-secondary/80">
-          Paste the job description and we'll assess how well it fits your profile.
-        </p>
-      </div>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger || (
+          <Button variant="ghost" size="sm">
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="font-lora text-2xl">Edit Job Details</DialogTitle>
+          <DialogDescription>Update the job information below.</DialogDescription>
+        </DialogHeader>
 
-      <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
             <FormField
               control={form.control}
               name="title"
@@ -122,7 +127,7 @@ export default function NewJobPage() {
                 <FormItem>
                   <FormLabel>Job Title *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Software Engineering Intern" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -136,7 +141,7 @@ export default function NewJobPage() {
                 <FormItem>
                   <FormLabel>Company *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Google" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -150,7 +155,7 @@ export default function NewJobPage() {
                 <FormItem>
                   <FormLabel>Location</FormLabel>
                   <FormControl>
-                    <Input placeholder="Mountain View, CA" {...field} />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -162,7 +167,7 @@ export default function NewJobPage() {
               name="job_source"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Where did you find this job? *</FormLabel>
+                  <FormLabel>Job Source</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -189,56 +194,24 @@ export default function NewJobPage() {
                 <FormItem>
                   <FormLabel>Job Posting URL</FormLabel>
                   <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://example.com/careers/job-123"
-                      {...field}
-                    />
+                    <Input type="url" {...field} />
                   </FormControl>
-                  <FormDescription>
-                    Link to the job posting (optional)
-                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="job_description_raw"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Job Description *</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Paste the full job description here..."
-                      className="min-h-[300px] font-mono text-sm"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Copy and paste the complete job description
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push('/jobs')}
-              >
+            <div className="flex justify-end gap-3 pt-4">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Adding...' : 'Add Job'}
+                {form.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>
         </Form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

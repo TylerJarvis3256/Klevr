@@ -7,6 +7,7 @@ import { FitAssessment } from './fit-assessment'
 import { CompanyResearch } from './company-research'
 import { DocumentsList } from './documents-list'
 import { NotesList } from './notes-list'
+import { ApplicationHistory } from './application-history'
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 
-type TabValue = 'description' | 'fit' | 'company' | 'documents' | 'notes'
+type TabValue = 'description' | 'fit' | 'company' | 'documents' | 'notes' | 'history'
 
 interface JobTabsProps {
   job: Job & {
@@ -44,6 +45,7 @@ const tabs = [
   { value: 'company' as const, label: 'Company Research' },
   { value: 'documents' as const, label: 'Documents' },
   { value: 'notes' as const, label: 'Notes' },
+  { value: 'history' as const, label: 'History' },
 ]
 
 export function JobTabs({
@@ -117,6 +119,10 @@ export function JobTabs({
 
         {activeTab === 'notes' && (
           <NotesList notes={application.Note} applicationId={application.id} />
+        )}
+
+        {activeTab === 'history' && (
+          <ApplicationHistory applicationId={application.id} />
         )}
       </div>
     </div>

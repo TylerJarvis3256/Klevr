@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ExternalLink, MapPin, Pencil, Trash2 } from 'lucide-react'
 import type { Job, Application } from '@prisma/client'
 import { toast } from 'sonner'
+import { EditJobDialog } from './edit-job-dialog'
 
 interface JobHeaderProps {
   job: Job
@@ -120,9 +121,14 @@ export function JobHeader({ job, application }: JobHeaderProps) {
         </div>
 
         <div className="flex gap-2">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Pencil className="w-4 h-4" />
-          </Button>
+          <EditJobDialog
+            job={job}
+            trigger={
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Pencil className="w-4 h-4" />
+              </Button>
+            }
+          />
           <Button variant="ghost" size="icon" onClick={handleDelete} className="rounded-full">
             <Trash2 className="w-4 h-4" />
           </Button>
