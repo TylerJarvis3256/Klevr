@@ -63,10 +63,12 @@ model GeneratedDocument {
   application_id  String
   type            DocumentType
   storage_url     String
+  display_name    String?
   structured_data Json?
   prompt_version  String
   model_used      String
   tokens_used     Int?
+  deleted_at      DateTime?
   created_at      DateTime     @default(now())
   Application     Application  @relation(fields: [application_id], references: [id], onDelete: Cascade)
 
@@ -116,6 +118,7 @@ model Profile {
   resume_file_url            String?
   resume_file_name           String?
   resume_uploaded_at         DateTime?
+  resume_deleted_at          DateTime?
   parsed_resume              Json?
   parsed_resume_confirmed_at DateTime?
   job_types                  String[]

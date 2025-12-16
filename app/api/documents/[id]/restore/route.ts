@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function DELETE(
+export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -28,15 +28,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Soft delete (mark as deleted)
+    // Restore (clear deleted_at)
     await prisma.generatedDocument.update({
       where: { id },
-      data: { deleted_at: new Date() },
+      data: { deleted_at: null },
     })
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting document:', error)
-    return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 })
+    console.error('Error restoring document:', error)
+    return NextResponse.json({ error: 'Failed to restore document' }, { status: 500 })
   }
 }

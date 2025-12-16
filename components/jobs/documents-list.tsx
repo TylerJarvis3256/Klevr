@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import type { GeneratedDocument, AiTask } from '@prisma/client'
 import { Button } from '@/components/ui/button'
-import { FileText, Download, Loader2, Eye } from 'lucide-react'
+import { FileText, Download, Loader2, Eye, Trash2 } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -133,8 +133,52 @@ export function DocumentsList({
     setPreviewOpen(true)
   }
 
-  const resumeDocs = documents.filter(d => d.type === 'RESUME')
-  const coverLetterDocs = documents.filter(d => d.type === 'COVER_LETTER')
+  const handleDeleteDocument = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/documents/${documentId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete document')
+      }
+
+      // Show undo toast
+      toast.success('Document deleted', {
+        action: {
+          label: 'Undo',
+          onClick: () => handleUndoDelete(documentId),
+        },
+        duration: 10000, // 10 second undo window
+      })
+
+      // Refresh to hide the deleted document
+      router.refresh()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete document')
+    }
+  }
+
+  const handleUndoDelete = async (documentId: string) => {
+    try {
+      const response = await fetch(`/api/documents/${documentId}/restore`, {
+        method: 'POST',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to restore document')
+      }
+
+      toast.success('Document restored')
+      router.refresh()
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to restore document')
+    }
+  }
+
+  // Filter out deleted documents
+  const resumeDocs = documents.filter(d => d.type === 'RESUME' && !d.deleted_at)
+  const coverLetterDocs = documents.filter(d => d.type === 'COVER_LETTER' && !d.deleted_at)
 
   // Check if tasks are in progress
   const isGeneratingResume = !!resumeTask || generatingResume
@@ -214,7 +258,7 @@ export function DocumentsList({
                   <div>
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-accent-teal" />
-                      <p className="font-medium text-secondary">Tailored Resume</p>
+                      <p className="font-medium text-secondary">{doc.display_name || 'Tailored Resume'}</p>
                     </div>
                     <p className="text-sm text-secondary/60 mt-1">
                       Generated {formatDate(doc.created_at)}
@@ -249,6 +293,14 @@ export function DocumentsList({
                           Download PDF
                         </>
                       )}
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-error hover:text-error hover:bg-error/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -286,7 +338,7 @@ export function DocumentsList({
                   <div>
                     <div className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-accent-orange" />
-                      <p className="font-medium text-secondary">Tailored Cover Letter</p>
+                      <p className="font-medium text-secondary">{doc.display_name || 'Tailored Cover Letter'}</p>
                     </div>
                     <p className="text-sm text-secondary/60 mt-1">
                       Generated {formatDate(doc.created_at)}
@@ -321,6 +373,14 @@ export function DocumentsList({
                           Download PDF
                         </>
                       )}
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="text-error hover:text-error hover:bg-error/10"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>

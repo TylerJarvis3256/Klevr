@@ -103,11 +103,19 @@ export const resumeGenerationFunction = inngest.createFunction(
 
       // Step 7: Save document record
       const document = await step.run('save-document', async () => {
+        // Generate display name: [User Name] [Job Title] [Company] [Month] [Year]
+        const now = new Date()
+        const month = now.toLocaleString('en-US', { month: 'short' })
+        const year = now.getFullYear()
+        const userName = application.User.Profile!.full_name || 'Resume'
+        const displayName = `${userName} ${application.Job.title} ${application.Job.company} ${month} ${year}`
+
         return prisma.generatedDocument.create({
           data: {
             application_id: applicationId,
             type: DocumentType.RESUME,
             storage_url: key,
+            display_name: displayName,
             structured_data: content as any,
             prompt_version: 'resume-generate-v1.0.0',
             model_used: 'gpt-4o-2024-05-13',
