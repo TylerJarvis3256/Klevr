@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { Application, Job, FitBucket } from '@prisma/client'
-import { Building2, MapPin, Edit2, Trash2, GripVertical } from 'lucide-react'
+import { Building2, MapPin, Edit2, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
 import { toast } from 'sonner'
@@ -111,36 +111,27 @@ export function ApplicationCard({
   return (
     <>
       <div
+        {...(dragHandleProps || {})}
         className={`relative bg-white rounded-xl border border-secondary/10 p-4 transition-all duration-200 hover:shadow-md hover:border-accent-teal/30 group ${
-          isDragging ? 'shadow-xl rotate-2' : ''
-        }`}
+          isDragging ? 'shadow-xl opacity-50' : ''
+        } ${dragHandleProps ? 'cursor-grab active:cursor-grabbing' : ''}`}
       >
-        {/* Drag Handle */}
-        {dragHandleProps && (
-          <div
-            {...dragHandleProps}
-            className="absolute left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
-          >
-            <GripVertical className="h-5 w-5 text-secondary/30" />
-          </div>
-        )}
-
         {/* Header with Action Buttons */}
         <div className="mb-3">
           <div className="flex items-start justify-between gap-2 mb-1">
             <h3
               onClick={handleCardClick}
+              onPointerDown={(e) => e.stopPropagation()}
               className="font-semibold text-secondary group-hover:text-accent-teal transition-colors line-clamp-1 flex-1 cursor-pointer"
             >
               {job.title}
             </h3>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-7 w-7"
                 onClick={handleEdit}
-                onPointerDown={(e) => e.stopPropagation()}
                 title="View job details"
               >
                 <Edit2 className="h-3.5 w-3.5" />
@@ -150,7 +141,6 @@ export function ApplicationCard({
                 size="icon"
                 className="h-7 w-7 text-error hover:text-error hover:bg-error/10"
                 onClick={handleDeleteClick}
-                onPointerDown={(e) => e.stopPropagation()}
                 title="Delete job"
               >
                 <Trash2 className="h-3.5 w-3.5" />
