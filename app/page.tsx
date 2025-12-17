@@ -1,9 +1,22 @@
 import { Button } from '@/components/ui/button'
 import { Sparkles, Target, FileText, TrendingUp } from 'lucide-react'
+import Image from 'next/image'
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary via-primary/80 to-primary">
+      {/* Header */}
+      <header className="absolute top-0 left-0 z-50 px-4 -mt-8">
+        <Image
+          src="/logos/logo-1-transparent.png"
+          alt="Klevr - AI-powered career assistant"
+          width={280}
+          height={100}
+          priority
+          className="h-auto w-auto max-w-[220px] md:max-w-[260px]"
+        />
+      </header>
+
       {/* Hero Section */}
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-24">
         <div className="max-w-4xl text-center">

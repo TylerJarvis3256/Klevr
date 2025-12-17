@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Home, Briefcase, User, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,7 +21,14 @@ export function Sidebar() {
       <div className="flex flex-col flex-grow overflow-y-auto">
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 px-6 py-6 border-b border-secondary/10">
-          <Link href="/dashboard" className="flex items-center">
+          <Link href="/dashboard" className="flex items-center gap-3">
+            <Image
+              src="/logos/logo-2-transparent.png"
+              alt="Klevr Logo"
+              width={40}
+              height={40}
+              className="h-10 w-10"
+            />
             <span className="font-lora text-2xl font-bold text-secondary">Klevr</span>
           </Link>
         </div>

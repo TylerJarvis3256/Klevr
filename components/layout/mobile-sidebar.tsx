@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Home, Briefcase, User, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -35,10 +36,17 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
             <SheetTitle>
               <Link
                 href="/dashboard"
-                className="font-lora text-2xl font-bold text-secondary"
+                className="flex items-center gap-3"
                 onClick={onClose}
               >
-                Klevr
+                <Image
+                  src="/logos/logo-2-transparent.png"
+                  alt="Klevr Logo"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10"
+                />
+                <span className="font-lora text-2xl font-bold text-secondary">Klevr</span>
               </Link>
             </SheetTitle>
           </SheetHeader>
