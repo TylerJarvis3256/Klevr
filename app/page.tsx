@@ -5,21 +5,21 @@ import Image from 'next/image'
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary via-primary/80 to-primary">
-      {/* Header */}
-      <header className="absolute top-0 left-0 z-50 px-4 -mt-8">
-        <Image
-          src="/logos/logo-1-transparent.png"
-          alt="Klevr - AI-powered career assistant"
-          width={280}
-          height={100}
-          priority
-          className="h-auto w-auto max-w-[220px] md:max-w-[260px]"
-        />
-      </header>
-
       {/* Hero Section */}
       <main className="flex min-h-screen flex-col items-center justify-center px-6 py-24">
         <div className="max-w-4xl text-center">
+          {/* Logo */}
+          <div className="mb-6">
+            <Image
+              src="/logos/logo-2-transparent.png"
+              alt="Klevr"
+              width={120}
+              height={120}
+              priority
+              className="h-auto w-auto mx-auto max-w-[100px] md:max-w-[120px]"
+            />
+          </div>
+
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-2 mb-8 rounded-full bg-accent-teal/10 border border-accent-teal/20">
             <Sparkles className="h-4 w-4 text-accent-teal" />
