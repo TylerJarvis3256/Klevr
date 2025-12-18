@@ -53,9 +53,6 @@ export const runSavedSearches = inngest.createFunction(
   {
     id: 'run-saved-searches',
     name: 'Run Saved Searches',
-    concurrency: {
-      limit: 20, // Max 20 concurrent executions to respect Adzuna rate limits (25/min)
-    },
   },
   { cron: '0 * * * *' }, // Every hour at :00
   async ({ step, logger }) => {
