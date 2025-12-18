@@ -15,7 +15,7 @@ import { prisma } from './prisma'
 // Environment variables
 const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID
 const ADZUNA_APP_KEY = process.env.ADZUNA_APP_KEY
-const ADZUNA_BASE_URL = 'https://api.adzuna.com/v1/api/jobs/us'
+const ADZUNA_BASE_URL = 'http://api.adzuna.com/v1/api/jobs/us' // Note: Adzuna uses HTTP, not HTTPS
 
 // Rate limits (from Adzuna TOS)
 const RATE_LIMITS = {
