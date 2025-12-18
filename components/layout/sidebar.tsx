@@ -3,12 +3,13 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Home, Briefcase, User, Settings } from 'lucide-react'
+import { Home, Briefcase, Search, User, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Jobs', href: '/jobs', icon: Briefcase },
+  { name: 'Discover', href: '/jobs/discover', icon: Search },
   { name: 'Profile', href: '/profile', icon: User },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
