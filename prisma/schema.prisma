@@ -29,28 +29,28 @@ model AiTask {
 }
 
 model Application {
-  id                String              @id @default(cuid())
-  user_id           String
-  job_id            String
-  status            ApplicationStatus   @default(PLANNED)
-  score_count       Int                 @default(1)
-  applied_at        DateTime?
-  fit_bucket        FitBucket?
-  fit_score         Float?
-  score_explanation String?
+  id                       String              @id @default(cuid())
+  user_id                  String
+  job_id                   String
+  status                   ApplicationStatus   @default(PLANNED)
+  score_count              Int                 @default(1)
+  applied_at               DateTime?
+  fit_bucket               FitBucket?
+  fit_score                Float?
+  score_explanation        String?
   matching_skills          String[]
   missing_skills           String[]
-  missing_required_skills  String[]  @default([])
-  missing_preferred_skills String[]  @default([])
+  missing_required_skills  String[]            @default([])
+  missing_preferred_skills String[]            @default([])
   company_research         Json?
-  created_at        DateTime            @default(now())
-  updated_at        DateTime            @updatedAt
-  AiTask            AiTask[]
-  Job               Job                 @relation(fields: [job_id], references: [id], onDelete: Cascade)
-  User              User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  GeneratedDocument GeneratedDocument[]
-  Note              Note[]
-  ActivityLog       ActivityLog[]
+  created_at               DateTime            @default(now())
+  updated_at               DateTime            @updatedAt
+  AiTask                   AiTask[]
+  Job                      Job                 @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  User                     User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  GeneratedDocument        GeneratedDocument[]
+  Note                     Note[]
+  ActivityLog              ActivityLog[]
 
   @@index([created_at])
   @@index([fit_bucket])
@@ -86,6 +86,7 @@ model Job {
   location               String?
   job_url                String?
   job_source             JobSource?
+  adzuna_id              String?       @unique
   job_description_raw    String
   job_description_parsed Json?
   created_at             DateTime      @default(now())
@@ -93,6 +94,7 @@ model Job {
   Application            Application[]
   User                   User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
+  @@index([adzuna_id])
   @@index([company])
   @@index([created_at])
   @@index([user_id])
@@ -183,17 +185,19 @@ model ActivityLog {
 }
 
 model User {
-  id          String        @id @default(cuid())
-  auth0_id    String        @unique
-  email       String        @unique
-  created_at  DateTime      @default(now())
-  updated_at  DateTime      @updatedAt
-  AiTask      AiTask[]
-  Application Application[]
-  Job         Job[]
-  Profile     Profile?
-  Project     Project[]
-  ActivityLog ActivityLog[]
+  id           String         @id @default(cuid())
+  auth0_id     String         @unique
+  email        String         @unique
+  created_at   DateTime       @default(now())
+  updated_at   DateTime       @updatedAt
+  AiTask       AiTask[]
+  Application  Application[]
+  Job          Job[]
+  Profile      Profile?
+  Project      Project[]
+  ActivityLog  ActivityLog[]
+  SavedSearch  SavedSearch[]
+  Notification Notification[]
 
   @@index([auth0_id])
   @@index([email])
@@ -240,6 +244,7 @@ enum JobSource {
   HANDSHAKE
   COMPANY_WEBSITE
   REFERRAL
+  ADZUNA
   OTHER
 }
 
@@ -254,4 +259,92 @@ enum ActivityType {
   NOTE_ADDED
   NOTE_EDITED
   DOCUMENT_DELETED
+  JOB_DISCOVERED
+  SEARCH_PERFORMED
+  SEARCH_SAVED
+  SAVED_SEARCH_RUN
+}
+
+enum SavedSearchFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum NotificationType {
+  SAVED_SEARCH_NEW_JOBS
+  SYSTEM_ANNOUNCEMENT
+}
+
+model SavedSearch {
+  id             String               @id @default(cuid())
+  user_id        String
+  name           String
+  query_config   Json
+  frequency      SavedSearchFrequency @default(WEEKLY)
+  notify_in_app  Boolean              @default(true)
+  notify_email   Boolean              @default(true)
+  last_run_at    DateTime?
+  next_run_at    DateTime?
+  user_timezone  String?              @default("America/New_York")
+  active         Boolean              @default(true)
+  created_at     DateTime             @default(now())
+  updated_at     DateTime             @updatedAt
+  User           User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  SavedSearchRun SavedSearchRun[]
+
+  @@index([user_id])
+  @@index([active, next_run_at])
+}
+
+model SavedSearchRun {
+  id               String      @id @default(cuid())
+  saved_search_id  String
+  new_jobs_count   Int         @default(0)
+  total_jobs_found Int         @default(0)
+  adzuna_job_ids   String[]
+  status           String
+  error_message    String?
+  ran_at           DateTime    @default(now())
+  SavedSearch      SavedSearch @relation(fields: [saved_search_id], references: [id], onDelete: Cascade)
+
+  @@index([saved_search_id])
+  @@index([ran_at])
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  user_id    String
+  type       NotificationType
+  title      String
+  body       String
+  link_url   String?
+  read_at    DateTime?
+  metadata   Json?
+  created_at DateTime         @default(now())
+  User       User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, created_at])
+  @@index([user_id, read_at])
+}
+
+model AdzunaRequestLog {
+  id           String   @id @default(cuid())
+  request_type String
+  status_code  Int?
+  rate_limited Boolean  @default(false)
+  created_at   DateTime @default(now())
+
+  @@index([created_at])
+  @@index([rate_limited, created_at])
+}
+
+model AdzunaSearchCache {
+  id         String   @id @default(cuid())
+  cache_key  String   @unique
+  results    Json
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([cache_key, expires_at])
 }
