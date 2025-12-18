@@ -37,7 +37,10 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 px-4 py-6 space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`)
+            // For /jobs route, only highlight if exactly on /jobs, not on sub-routes like /jobs/discover
+            const isActive = item.href === '/jobs'
+              ? pathname === '/jobs'
+              : pathname === item.href || pathname?.startsWith(`${item.href}/`)
             return (
               <Link
                 key={item.name}

@@ -55,6 +55,7 @@ const editJobSchema = z.object({
     'HANDSHAKE',
     'COMPANY_WEBSITE',
     'REFERRAL',
+    'ADZUNA',
     'OTHER',
   ]).optional(),
   job_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),

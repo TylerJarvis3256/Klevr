@@ -56,17 +56,17 @@ export function JobResultCard({ job, onSave, isSaved = false }: JobResultCardPro
     : job.description
 
   return (
-    <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-6 hover:shadow-lg transition-shadow">
+    <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-4 sm:p-6 hover:shadow-lg transition-shadow">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-4">
         <div className="flex-1 min-w-0">
-          <h3 className="font-lora text-xl font-semibold text-secondary mb-2 line-clamp-2">
+          <h3 className="font-lora text-lg sm:text-xl font-semibold text-secondary mb-2 line-clamp-2">
             {job.title}
           </h3>
 
           <div className="flex items-center gap-2 text-secondary/80 mb-2">
             <Building2 className="h-4 w-4 flex-shrink-0" />
-            <span className="font-medium">{job.company.display_name}</span>
+            <span className="font-medium text-sm sm:text-base">{job.company.display_name}</span>
           </div>
 
           {job.location && (
@@ -80,7 +80,7 @@ export function JobResultCard({ job, onSave, isSaved = false }: JobResultCardPro
         {/* Save Button */}
         <div className="flex-shrink-0">
           {saved ? (
-            <Button disabled size="sm" className="rounded-full">
+            <Button disabled size="sm" className="rounded-full w-full sm:w-auto">
               <Check className="h-4 w-4 mr-2" />
               Saved
             </Button>
@@ -89,15 +89,19 @@ export function JobResultCard({ job, onSave, isSaved = false }: JobResultCardPro
               onClick={handleSave}
               disabled={isSaving}
               size="sm"
-              className="rounded-full"
+              className="rounded-full w-full sm:w-auto"
             >
               {isSaving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
+                  <span className="hidden sm:inline">Saving...</span>
+                  <span className="sm:hidden">Saving</span>
                 </>
               ) : (
-                'Save to Pipeline'
+                <>
+                  <span className="hidden sm:inline">Save to Pipeline</span>
+                  <span className="sm:hidden">Save</span>
+                </>
               )}
             </Button>
           )}

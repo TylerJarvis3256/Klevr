@@ -105,6 +105,30 @@ const ACTIVITY_CONFIG: Record<
         ? `${metadata.document_type.toLowerCase().replace('_', ' ')} was deleted`
         : 'A document was deleted',
   },
+  JOB_DISCOVERED: {
+    icon: Search,
+    label: 'Job Discovered',
+    color: 'text-accent-teal',
+    getDescription: () => 'Job was discovered from Adzuna',
+  },
+  SEARCH_PERFORMED: {
+    icon: Search,
+    label: 'Search Performed',
+    color: 'text-secondary/60',
+    getDescription: () => 'Job search was performed',
+  },
+  SEARCH_SAVED: {
+    icon: CheckCircle2,
+    label: 'Search Saved',
+    color: 'text-success',
+    getDescription: () => 'Search was saved for notifications',
+  },
+  SAVED_SEARCH_RUN: {
+    icon: RefreshCw,
+    label: 'Saved Search Run',
+    color: 'text-accent-orange',
+    getDescription: () => 'Saved search was executed',
+  },
 }
 
 export function ApplicationHistory({ applicationId }: ApplicationHistoryProps) {

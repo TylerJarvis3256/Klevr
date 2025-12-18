@@ -5,7 +5,8 @@ import Image from 'next/image'
  * Adzuna TOS Compliance Attribution
  *
  * Displays "Jobs by Adzuna" with logo as required by Adzuna TOS.
- * Logo will be added in Phase 7.
+ * Logo should be downloaded from: https://www.adzuna.com/about-us/press-office/
+ * Save to: public/images/adzuna-logo.png
  */
 export function AdzunaAttribution() {
   return (
@@ -15,18 +16,16 @@ export function AdzunaAttribution() {
         href="https://www.adzuna.com"
         target="_blank"
         rel="noopener noreferrer"
-        className="hover:opacity-80 transition-opacity"
+        className="hover:opacity-80 transition-opacity inline-flex items-center"
       >
-        {/* Placeholder - logo will be added in Phase 7 */}
-        <span className="font-semibold text-accent-teal">Adzuna</span>
-        {/* TODO Phase 7: Replace with actual logo */}
-        {/* <Image
+        <Image
           src="/images/adzuna-logo.png"
           alt="Adzuna"
           width={80}
           height={24}
           className="h-6 w-auto"
-        /> */}
+          unoptimized
+        />
       </Link>
     </div>
   )

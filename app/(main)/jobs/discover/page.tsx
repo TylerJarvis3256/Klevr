@@ -9,7 +9,15 @@ import { FilterPanel } from '@/components/jobs/discover/filter-panel'
 import { JobResultCard } from '@/components/jobs/discover/job-result-card'
 import { AdzunaAttribution } from '@/components/jobs/discover/adzuna-attribution'
 import { SavedSearchesDropdown } from '@/components/jobs/discover/saved-searches-dropdown'
-import { Loader2, Search as SearchIcon, AlertCircle, ChevronLeft, ChevronRight, Bookmark } from 'lucide-react'
+import { SaveSearchModal } from '@/components/jobs/discover/save-search-modal'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { Loader2, Search as SearchIcon, AlertCircle, ChevronLeft, ChevronRight, Bookmark, SlidersHorizontal } from 'lucide-react'
 import { toast } from 'sonner'
 import type { AdzunaJob, AdzunaSearchResponse } from '@/lib/adzuna'
 
@@ -34,6 +42,7 @@ function DiscoverContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set())
+  const [saveSearchModalOpen, setSaveSearchModalOpen] = useState(false)
 
   // Fetch results when URL params change
   useEffect(() => {
@@ -155,8 +164,7 @@ function DiscoverContent() {
   }
 
   function handleSaveSearch() {
-    // TODO Phase 4: Open save search modal
-    toast.info('Save search feature coming in Phase 4')
+    setSaveSearchModalOpen(true)
   }
 
   async function handleSaveJob(job: AdzunaJob) {
@@ -204,13 +212,17 @@ function DiscoverContent() {
   return (
     <div className="max-w-7xl">
       {/* Header */}
-      <div className="flex justify-between items-start mb-8">
+      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6 lg:mb-8">
         <div>
-          <h1 className="font-lora text-4xl font-bold text-secondary mb-2">Discover Jobs</h1>
-          <p className="text-secondary/80">Search and save jobs from thousands of listings</p>
+          <h1 className="font-lora text-2xl sm:text-3xl lg:text-4xl font-bold text-secondary mb-1 lg:mb-2">
+            Discover Jobs
+          </h1>
+          <p className="text-sm lg:text-base text-secondary/80">
+            Search and save jobs from thousands of listings
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 lg:gap-3 flex-wrap">
           <SavedSearchesDropdown
             onLoadSearch={handleLoadSavedSearch}
             onNewSearch={handleSaveSearch}
@@ -224,7 +236,8 @@ function DiscoverContent() {
               className="rounded-full"
             >
               <Bookmark className="h-4 w-4 mr-2" />
-              Save Search
+              <span className="hidden sm:inline">Save Search</span>
+              <span className="sm:hidden">Save</span>
             </Button>
           )}
         </div>
@@ -244,10 +257,39 @@ function DiscoverContent() {
         />
       </div>
 
+      {/* Mobile Filters Button */}
+      <div className="lg:hidden mb-4">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full rounded-full">
+              <SlidersHorizontal className="h-4 w-4 mr-2" />
+              Filters & Sort
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80">
+            <SheetHeader>
+              <SheetTitle>Filters & Sort</SheetTitle>
+            </SheetHeader>
+            <div className="mt-6">
+              <FilterPanel
+                salaryMin={salaryMin}
+                fullTime={fullTime}
+                permanent={permanent}
+                sortBy={sortBy}
+                onSalaryMinChange={setSalaryMin}
+                onFullTimeToggle={setFullTime}
+                onPermanentToggle={setPermanent}
+                onSortByChange={setSortBy}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+
       {/* Main Content - Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar - Filters */}
-        <aside className="lg:col-span-1">
+        {/* Sidebar - Filters (Desktop Only) */}
+        <aside className="hidden lg:block lg:col-span-1">
           <FilterPanel
             salaryMin={salaryMin}
             fullTime={fullTime}
@@ -344,7 +386,7 @@ function DiscoverContent() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between bg-white rounded-2xl border border-secondary/10 shadow-card p-4">
+                <div className="flex items-center justify-between bg-white rounded-2xl border border-secondary/10 shadow-card p-3 sm:p-4">
                   <Button
                     onClick={handlePreviousPage}
                     disabled={page === 1}
@@ -352,11 +394,11 @@ function DiscoverContent() {
                     size="sm"
                     className="rounded-full"
                   >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Previous
+                    <ChevronLeft className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Previous</span>
                   </Button>
 
-                  <span className="text-sm text-secondary/70">
+                  <span className="text-xs sm:text-sm text-secondary/70">
                     Page {page} of {totalPages}
                   </span>
 
@@ -367,8 +409,8 @@ function DiscoverContent() {
                     size="sm"
                     className="rounded-full"
                   >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="h-4 w-4 sm:ml-2" />
                   </Button>
                 </div>
               )}
@@ -376,6 +418,20 @@ function DiscoverContent() {
           )}
         </main>
       </div>
+
+      {/* Save Search Modal */}
+      <SaveSearchModal
+        open={saveSearchModalOpen}
+        onClose={() => setSaveSearchModalOpen(false)}
+        searchParams={{
+          what: keywords,
+          where: location,
+          salary_min: salaryMin ? parseInt(salaryMin) : undefined,
+          full_time: fullTime,
+          permanent: permanent,
+          sort_by: sortBy,
+        }}
+      />
     </div>
   )
 }

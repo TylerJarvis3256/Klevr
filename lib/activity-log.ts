@@ -3,7 +3,7 @@ import { ActivityType } from '@prisma/client'
 
 export interface LogActivityParams {
   user_id: string
-  application_id: string
+  application_id?: string
   type: ActivityType
   metadata?: Record<string, any>
 }
@@ -40,7 +40,7 @@ export async function logActivity(params: LogActivityParams): Promise<boolean> {
     await prisma.activityLog.create({
       data: {
         user_id: params.user_id,
-        application_id: params.application_id,
+        application_id: params.application_id ?? undefined,
         type: params.type,
         metadata: params.metadata ?? undefined,
       },
@@ -50,7 +50,7 @@ export async function logActivity(params: LogActivityParams): Promise<boolean> {
     // Non-blocking: log the error but don't throw
     console.error('[ActivityLog] Failed to log activity:', {
       type: params.type,
-      application_id: params.application_id,
+      application_id: params.application_id ?? 'none',
       error: error instanceof Error ? error.message : 'Unknown error',
     })
     return false

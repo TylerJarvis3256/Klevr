@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 interface NavbarProps {
   onMenuClick?: () => void
@@ -63,6 +64,12 @@ export function Navbar({ onMenuClick }: NavbarProps) {
 
         {/* User menu */}
         <div className="flex items-center gap-x-4 lg:gap-x-6">
+          {/* Notification Bell */}
+          <NotificationBell />
+
+          {/* Separator */}
+          <div className="hidden lg:block h-6 w-px bg-secondary/10" aria-hidden="true" />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-10 w-10 rounded-full">

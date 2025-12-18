@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Home, Briefcase, User, Settings } from 'lucide-react'
+import { Home, Briefcase, Search, User, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Sheet,
@@ -15,6 +15,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Jobs', href: '/jobs', icon: Briefcase },
+  { name: 'Discover', href: '/jobs/discover', icon: Search },
   { name: 'Profile', href: '/profile', icon: User },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
@@ -54,8 +55,10 @@ export function MobileSidebar({ open, onClose }: MobileSidebarProps) {
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1">
             {navigation.map((item) => {
-              const isActive =
-                pathname === item.href || pathname?.startsWith(`${item.href}/`)
+              // For /jobs route, only highlight if exactly on /jobs, not on sub-routes like /jobs/discover
+              const isActive = item.href === '/jobs'
+                ? pathname === '/jobs'
+                : pathname === item.href || pathname?.startsWith(`${item.href}/`)
               return (
                 <Link
                   key={item.name}

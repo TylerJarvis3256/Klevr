@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { searchAdzunaJobs } from '@/lib/adzuna'
 import { getCachedSearchResults, setCachedSearchResults } from '@/lib/adzuna-cache'
+import { logActivity } from '@/lib/activity-log'
 import type { AdzunaSearchParams } from '@/lib/adzuna'
 
 /**
@@ -49,6 +50,22 @@ export async function GET(request: Request) {
 
     // Cache results (15 minutes for interactive searches)
     await setCachedSearchResults(params, results)
+
+    // Log search activity (non-blocking)
+    logActivity({
+      user_id: user.id,
+      type: 'SEARCH_PERFORMED',
+      metadata: {
+        keywords: params.what,
+        location: params.where,
+        filters: {
+          salary_min: params.salary_min,
+          full_time: params.full_time,
+          permanent: params.permanent,
+        },
+        results_count: results.count,
+      },
+    }).catch(err => console.error('Failed to log search activity:', err))
 
     return NextResponse.json(results)
   } catch (error: any) {

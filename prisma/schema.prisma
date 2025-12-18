@@ -171,12 +171,12 @@ model Project {
 model ActivityLog {
   id             String       @id @default(cuid())
   user_id        String
-  application_id String
+  application_id String?
   type           ActivityType
   metadata       Json?
   created_at     DateTime     @default(now())
   User           User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  Application    Application  @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  Application    Application? @relation(fields: [application_id], references: [id], onDelete: Cascade)
 
   @@index([application_id])
   @@index([user_id])

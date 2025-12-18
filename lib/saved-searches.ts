@@ -8,7 +8,6 @@ import {
   startOfDay,
   getDay,
   getDaysInMonth,
-  isAfter,
   isBefore,
 } from 'date-fns'
 import { SavedSearchFrequency } from '@prisma/client'

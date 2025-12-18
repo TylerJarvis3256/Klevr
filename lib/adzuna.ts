@@ -15,7 +15,7 @@ import { prisma } from './prisma'
 // Environment variables
 const ADZUNA_APP_ID = process.env.ADZUNA_APP_ID
 const ADZUNA_APP_KEY = process.env.ADZUNA_APP_KEY
-const ADZUNA_BASE_URL = 'http://api.adzuna.com/v1/api/jobs/us' // Note: Adzuna uses HTTP, not HTTPS
+const ADZUNA_BASE_URL = 'https://api.adzuna.com/v1/api/jobs/us' // Using HTTPS (HTTP redirects to HTTPS)
 
 // Rate limits (from Adzuna TOS)
 const RATE_LIMITS = {
@@ -64,7 +64,7 @@ export const AdzunaJobSchema = z.object({
   redirect_url: z.string().url(),
   salary_min: z.number().optional(),
   salary_max: z.number().optional(),
-  salary_is_predicted: z.union([z.literal(0), z.literal(1)]).optional(),
+  salary_is_predicted: z.union([z.literal('0'), z.literal('1'), z.literal(0), z.literal(1), z.boolean()]).optional(),
   contract_type: z.string().optional(),
   contract_time: z.string().optional(),
   category: AdzunaCategorySchema.optional(),
@@ -185,6 +185,8 @@ function buildAdzunaUrl(endpoint: string, params: Record<string, any>): string {
   url.searchParams.append('app_id', ADZUNA_APP_ID)
   url.searchParams.append('app_key', ADZUNA_APP_KEY)
 
+  // Note: content-type parameter NOT needed (causes issues when URL-encoded)
+
   // Add other params
   Object.entries(params).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== '') {
@@ -210,16 +212,23 @@ export async function searchAdzunaJobs(
     throw new Error(rateLimitCheck.reason || 'Rate limit exceeded')
   }
 
-  // Build URL
-  const url = buildAdzunaUrl('search/1', validatedParams)
+  // Extract page number for URL path (not a query parameter)
+  const { page, ...queryParams } = validatedParams
+
+  // Build URL with page in path, other params as query string
+  const url = buildAdzunaUrl(`search/${page}`, queryParams)
+
+  // Debug: Check if HTTP change took effect
+  console.log('[Adzuna] Full API URL:', url)
 
   try {
-    // Make request
+    // Make request (follow redirects)
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
+      redirect: 'follow', // Explicitly follow redirects (should be default but being explicit)
     })
 
     // Log request
