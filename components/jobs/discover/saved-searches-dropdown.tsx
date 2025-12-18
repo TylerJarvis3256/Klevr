@@ -37,6 +37,12 @@ export function SavedSearchesDropdown({ onLoadSearch, onNewSearch }: SavedSearch
       setIsLoading(true)
       const res = await fetch('/api/saved-searches')
 
+      // If API doesn't exist yet (404), just return empty array
+      if (res.status === 404) {
+        setSearches([])
+        return
+      }
+
       if (!res.ok) {
         throw new Error('Failed to fetch saved searches')
       }
@@ -45,7 +51,8 @@ export function SavedSearchesDropdown({ onLoadSearch, onNewSearch }: SavedSearch
       setSearches(data.searches || [])
     } catch (error) {
       console.error('Error fetching saved searches:', error)
-      // Silent fail - not critical
+      // Silent fail - set empty array
+      setSearches([])
     } finally {
       setIsLoading(false)
     }
