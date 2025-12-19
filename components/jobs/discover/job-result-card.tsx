@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -11,22 +12,31 @@ import type { AdzunaJob } from '@/lib/adzuna'
 
 interface JobResultCardProps {
   job: AdzunaJob
-  onSave?: (job: AdzunaJob) => Promise<void>
+  onSave?: (job: AdzunaJob) => Promise<{ jobId: string }>
   isSaved?: boolean
 }
 
 export function JobResultCard({ job, onSave, isSaved = false }: JobResultCardProps) {
   const [isSaving, setIsSaving] = useState(false)
   const [saved, setSaved] = useState(isSaved)
+  const router = useRouter()
 
   const handleSave = async () => {
     if (saved || !onSave) return
 
     setIsSaving(true)
     try {
-      await onSave(job)
+      const result = await onSave(job)
       setSaved(true)
-      toast.success('Job saved to pipeline')
+
+      // Show success toast with action to view job
+      toast.success('Job saved to pipeline', {
+        description: 'Click to view job details and fit assessment',
+        action: {
+          label: 'View Job',
+          onClick: () => router.push(`/jobs/${result.jobId}`),
+        },
+      })
     } catch (error: any) {
       toast.error(error.message || 'Failed to save job')
     } finally {

@@ -6,6 +6,7 @@ import { resumeGenerationFunction } from '@/inngest/functions/resume-generation'
 import { coverLetterGenerationFunction } from '@/inngest/functions/cover-letter-generation'
 import { companyResearchFunction } from '@/inngest/functions/company-research'
 import { runSavedSearches } from '@/inngest/functions/run-saved-searches'
+import { scrapeJobDescriptionFunction } from '@/inngest/functions/scrape-job-description'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -16,5 +17,6 @@ export const { GET, POST, PUT } = serve({
     coverLetterGenerationFunction,
     companyResearchFunction,
     runSavedSearches,
+    scrapeJobDescriptionFunction,
   ],
 })

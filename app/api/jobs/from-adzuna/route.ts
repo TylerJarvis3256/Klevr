@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
+import { inngest } from '@/lib/inngest'
 
 const saveAdzunaJobSchema = z.object({
   adzuna_id: z.string().min(1),
@@ -121,29 +122,27 @@ export async function POST(request: Request) {
       },
     })
 
-    // Trigger AI tasks asynchronously (JOB_SCORING + COMPANY_RESEARCH)
+    // Trigger job description scraping (which will then trigger scoring)
     try {
-      const { createAiTask } = await import('@/lib/ai-tasks')
+      await inngest.send({
+        name: 'job/scrape-description',
+        data: {
+          jobId: result.job.id,
+          userId: user.id,
+          applicationId: result.application.id,
+        },
+      })
+    } catch (error) {
+      console.error('Failed to trigger job scraping:', error)
 
-      // Job scoring
+      // Fallback: trigger scoring directly if scraping event fails
+      const { createAiTask } = await import('@/lib/ai-tasks')
       await createAiTask({
         userId: user.id,
         type: 'JOB_SCORING',
         applicationId: result.application.id,
         data: {},
       })
-
-      // Company research (optional - can be triggered manually)
-      // Uncomment if you want automatic company research on save
-      // await createAiTask({
-      //   userId: user.id,
-      //   type: 'COMPANY_RESEARCH',
-      //   applicationId: result.application.id,
-      //   data: {},
-      // })
-    } catch (error) {
-      // Don't fail job creation if task creation fails
-      console.error('Failed to create AI task:', error)
     }
 
     return NextResponse.json(result, { status: 201 })

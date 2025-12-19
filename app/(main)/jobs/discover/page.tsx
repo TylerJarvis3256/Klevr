@@ -167,7 +167,7 @@ function DiscoverContent() {
     setSaveSearchModalOpen(true)
   }
 
-  async function handleSaveJob(job: AdzunaJob) {
+  async function handleSaveJob(job: AdzunaJob): Promise<{ jobId: string }> {
     const res = await fetch('/api/jobs/from-adzuna', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -190,8 +190,13 @@ function DiscoverContent() {
       throw new Error(error.error || 'Failed to save job')
     }
 
+    const data = await res.json()
+
     // Add to saved set
     setSavedJobIds(prev => new Set([...prev, job.id]))
+
+    // Return the job ID so the component can show a link
+    return { jobId: data.job.id }
   }
 
   function handlePreviousPage() {

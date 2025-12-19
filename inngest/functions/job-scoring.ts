@@ -18,6 +18,21 @@ export const jobScoringFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { userId, taskId, applicationId } = event.data
 
+    // If no taskId (triggered by scraping), create one
+    const effectiveTaskId =
+      taskId ||
+      (await step.run('create-task', async () => {
+        const task = await prisma.aiTask.create({
+          data: {
+            user_id: userId,
+            type: 'JOB_SCORING',
+            application_id: applicationId,
+            status: 'PENDING',
+          },
+        })
+        return task.id
+      }))
+
     // Step 1: Check usage limit
     const canProceed = await step.run('check-usage-limit', async () => {
       return checkUsageLimit(userId, 'JOB_SCORING')
@@ -26,7 +41,7 @@ export const jobScoringFunction = inngest.createFunction(
     if (!canProceed) {
       await step.run('mark-failure-limit', async () => {
         await prisma.aiTask.update({
-          where: { id: taskId },
+          where: { id: effectiveTaskId },
           data: {
             status: AiTaskStatus.FAILED,
             completed_at: new Date(),
@@ -40,7 +55,7 @@ export const jobScoringFunction = inngest.createFunction(
     // Step 2: Mark running and log activity
     await step.run('mark-running', async () => {
       await prisma.aiTask.update({
-        where: { id: taskId },
+        where: { id: effectiveTaskId },
         data: {
           status: AiTaskStatus.RUNNING,
           started_at: new Date(),
@@ -78,6 +93,14 @@ export const jobScoringFunction = inngest.createFunction(
       const profile = application.User.Profile
       if (!profile?.parsed_resume_confirmed_at) {
         throw new Error('User has not confirmed resume')
+      }
+
+      // Validate job description length (minimum 300 characters)
+      const MIN_DESCRIPTION_LENGTH = 300
+      if (application.Job.job_description_raw.length < MIN_DESCRIPTION_LENGTH) {
+        throw new Error(
+          `Job description too short for meaningful fit assessment (${application.Job.job_description_raw.length} characters, minimum ${MIN_DESCRIPTION_LENGTH} required)`
+        )
       }
 
       // Step 4: Parse job description
@@ -149,7 +172,7 @@ export const jobScoringFunction = inngest.createFunction(
       // Step 10: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
-          where: { id: taskId },
+          where: { id: effectiveTaskId },
           data: {
             status: AiTaskStatus.SUCCEEDED,
             completed_at: new Date(),
@@ -178,7 +201,7 @@ export const jobScoringFunction = inngest.createFunction(
       // Mark failure
       await step.run('mark-failure', async () => {
         await prisma.aiTask.update({
-          where: { id: taskId },
+          where: { id: effectiveTaskId },
           data: {
             status: AiTaskStatus.FAILED,
             completed_at: new Date(),

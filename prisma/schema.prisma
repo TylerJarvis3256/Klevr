@@ -89,6 +89,12 @@ model Job {
   adzuna_id              String?       @unique
   job_description_raw    String
   job_description_parsed Json?
+  scraping_attempted_at  DateTime?
+  scraping_completed_at  DateTime?
+  scraping_status        ScrapingStatus? @default(PENDING)
+  scraping_method        String?
+  scraping_error         String?
+  final_source_url       String?
   created_at             DateTime      @default(now())
   updated_at             DateTime      @updatedAt
   Application            Application[]
@@ -98,6 +104,7 @@ model Job {
   @@index([company])
   @@index([created_at])
   @@index([user_id])
+  @@index([scraping_status])
 }
 
 model Note {
@@ -274,6 +281,14 @@ enum SavedSearchFrequency {
 enum NotificationType {
   SAVED_SEARCH_NEW_JOBS
   SYSTEM_ANNOUNCEMENT
+}
+
+enum ScrapingStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  SKIPPED
 }
 
 model SavedSearch {

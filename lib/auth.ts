@@ -34,6 +34,12 @@ export async function getCurrentUser() {
 
     return user
   } catch (error) {
+    // Handle JSON parsing errors from malformed sessions gracefully
+    if (error instanceof SyntaxError && error.message.includes('JSON')) {
+      console.debug('Auth: Malformed session cookie detected, user not authenticated')
+      return null
+    }
+
     console.error('getCurrentUser error:', error)
     return null
   }

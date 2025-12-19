@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import type { Application, AiTask } from '@prisma/client'
-import { Loader2, CheckCircle2, XCircle, Plus } from 'lucide-react'
+import type { Application, AiTask, Job } from '@prisma/client'
+import { Loader2, CheckCircle2, XCircle, Plus, AlertCircle, Info } from 'lucide-react'
 import { FitBadge } from './fit-badge'
 import { useSSETask } from '@/lib/hooks/use-sse-task'
 import { useRouter } from 'next/navigation'
@@ -11,10 +11,11 @@ import { toast } from 'sonner'
 
 interface FitAssessmentProps {
   application: Application
+  job: Job
   aiTask: AiTask | null
 }
 
-export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
+export function FitAssessment({ application, job, aiTask }: FitAssessmentProps) {
   const router = useRouter()
   const [addingSkill, setAddingSkill] = useState<string | null>(null)
   const [isRescoring, setIsRescoring] = useState(false)
@@ -174,12 +175,69 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
 
   // Show placeholder if no fit data and no task
   if (!application.fit_bucket) {
+    const MIN_DESCRIPTION_LENGTH = 300
+    const isDescriptionTooShort = job.job_description_raw.length < MIN_DESCRIPTION_LENGTH
+    const scrapingFailed = job.scraping_status === 'FAILED'
+
+    // Determine why scoring didn't run
+    let reason: 'scraping-failed' | 'too-short' | 'unknown' = 'unknown'
+    if (scrapingFailed && isDescriptionTooShort) {
+      reason = 'scraping-failed'
+    } else if (isDescriptionTooShort) {
+      reason = 'too-short'
+    } else if (scrapingFailed) {
+      reason = 'scraping-failed'
+    }
+
     return (
       <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
         <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">Fit Assessment</h2>
-        <div className="flex flex-col items-center justify-center py-12">
-          <p className="text-secondary/70">No fit assessment available</p>
-        </div>
+
+        {reason === 'scraping-failed' && (
+          <div className="p-6 rounded-xl bg-orange-50 border border-orange-200">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-orange-900 mb-2">Fit assessment unavailable</p>
+                <p className="text-sm text-orange-800 mb-3">
+                  We couldn&apos;t fetch a complete job description from the source website,
+                  and the available snippet is too short ({job.job_description_raw.length} characters)
+                  for a reliable fit assessment. A minimum of {MIN_DESCRIPTION_LENGTH} characters is required.
+                </p>
+                <p className="text-sm text-orange-700">
+                  Try visiting the job posting directly to view the full description, or look for a
+                  more detailed job listing.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {reason === 'too-short' && (
+          <div className="p-6 rounded-xl bg-blue-50 border border-blue-200">
+            <div className="flex items-start gap-3">
+              <Info className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-blue-900 mb-2">Fit assessment unavailable</p>
+                <p className="text-sm text-blue-800 mb-3">
+                  This job description is too brief ({job.job_description_raw.length} characters)
+                  for a meaningful fit assessment. We need at least {MIN_DESCRIPTION_LENGTH} characters
+                  to analyze the job requirements and match them with your profile.
+                </p>
+                <p className="text-sm text-blue-700">
+                  Try finding a more detailed version of this job posting with the full requirements
+                  and responsibilities listed.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {reason === 'unknown' && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <p className="text-secondary/70">No fit assessment available</p>
+          </div>
+        )}
       </div>
     )
   }

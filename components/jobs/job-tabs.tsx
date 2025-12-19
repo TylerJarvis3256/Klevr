@@ -98,7 +98,7 @@ export function JobTabs({
         {activeTab === 'description' && <JobDescription job={job} />}
 
         {activeTab === 'fit' && (
-          <FitAssessment application={application} aiTask={latestScoringTask} />
+          <FitAssessment application={application} job={job} aiTask={latestScoringTask} />
         )}
 
         {activeTab === 'company' && (
