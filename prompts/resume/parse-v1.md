@@ -46,7 +46,8 @@ Return a JSON object with the following structure:
       "name": "Project Name",
       "description": "Brief description",
       "technologies": ["React", "Node.js"],
-      "url": "https://github.com/..."
+      "url": "https://example.com",
+      "github_link": "https://github.com/username/repo"
     }
   ],
   "skills": {
@@ -77,6 +78,11 @@ Return a JSON object with the following structure:
 8. For skills, categorize them appropriately into languages, frameworks, tools, and other
 9. Extract all bullet points from experience and preserve their original wording
 10. If education GPA is not provided, use null
+11. **For projects, distinguish between URLs:**
+    - `url`: Use for live demo links, deployed applications, or project websites (e.g., "https://myapp.com", "https://example.vercel.app")
+    - `github_link`: Use ONLY for GitHub repository URLs (e.g., "https://github.com/username/repo")
+    - If only a GitHub link is present, put it in `github_link` and set `url` to null
+    - If both are present, populate both fields appropriately
 
 ## Important
 
