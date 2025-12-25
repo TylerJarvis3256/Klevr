@@ -5,7 +5,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { parseResumeText } from '@/lib/resume-parser'
 
 const parseSchema = z.object({
-  resumeText: z.string().min(50, 'Resume text must be at least 50 characters'),
+  resumeText: z.string().min(50, 'Resume text must be at least 50 characters').optional(),
+  key: z.string().optional(),
+  fileType: z.string().optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -27,12 +29,37 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { resumeText } = parsed.data
+    let resumeText: string
 
-    // 3. Parse resume using OpenAI
+    // 3. Get resume text (either from direct paste or file extraction)
+    if (parsed.data.key && parsed.data.fileType) {
+      // Extract from uploaded file
+      const { downloadFile } = await import('@/lib/s3')
+      const { extractTextFromBuffer } = await import('@/lib/file-extractor')
+
+      const fileBuffer = await downloadFile(parsed.data.key)
+      resumeText = await extractTextFromBuffer(fileBuffer, parsed.data.fileType)
+
+      if (!resumeText || resumeText.length < 50) {
+        return NextResponse.json(
+          { error: 'Could not extract sufficient text from file' },
+          { status: 400 }
+        )
+      }
+    } else if (parsed.data.resumeText) {
+      // Direct text paste
+      resumeText = parsed.data.resumeText
+    } else {
+      return NextResponse.json(
+        { error: 'Either resumeText or (key + fileType) must be provided' },
+        { status: 400 }
+      )
+    }
+
+    // 4. Parse resume using OpenAI
     const parsedResume = await parseResumeText(resumeText)
 
-    // 4. Save parsed resume to profile (not confirmed yet)
+    // 5. Save parsed resume to profile (not confirmed yet)
     await prisma.profile.upsert({
       where: { user_id: user.id },
       create: {
@@ -43,6 +70,25 @@ export async function POST(req: NextRequest) {
         parsed_resume: parsedResume as any,
         // Clear confirmation when re-parsing
         parsed_resume_confirmed_at: null,
+      },
+    })
+
+    // 6. Create ResumeUpload record
+    const fileName = parsed.data.key
+      ? parsed.data.key.split('/').pop() || 'Uploaded Resume'
+      : 'Pasted Resume'
+
+    await prisma.resumeUpload.create({
+      data: {
+        user_id: user.id,
+        file_name: fileName,
+        file_url: parsed.data.key || '',
+        file_type: parsed.data.fileType || 'text/plain',
+        file_size: resumeText.length, // Approximate size
+        uploaded_at: new Date(),
+        parsed_at: new Date(),
+        parsed_resume: parsedResume as any,
+        source: 'ONBOARDING',
       },
     })
 
