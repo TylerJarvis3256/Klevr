@@ -1,4 +1,9 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
 // Initialize S3 client
@@ -24,9 +29,7 @@ export const ALLOWED_MIME_TYPES = {
     'application/pdf',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
   ],
-  GENERATED: [
-    'application/pdf',
-  ],
+  GENERATED: ['application/pdf'],
 }
 
 /**
@@ -77,6 +80,19 @@ export async function uploadBuffer(
   })
 
   await s3Client.send(command)
+}
+
+/**
+ * Download a file from S3 as a Buffer
+ */
+export async function downloadFile(key: string): Promise<Buffer> {
+  const command = new GetObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: key,
+  })
+  const response = await s3Client.send(command)
+  const bytes = await response.Body!.transformToByteArray()
+  return Buffer.from(bytes)
 }
 
 /**

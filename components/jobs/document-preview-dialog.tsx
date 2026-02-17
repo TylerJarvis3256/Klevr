@@ -12,7 +12,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Copy, Check } from 'lucide-react'
 import { toast } from 'sonner'
-import type { GeneratedResumeContent } from '@/lib/resume-generator'
+import type { GeneratedResumeContent } from '@/lib/resume-types'
+import { isSkillsV2 } from '@/lib/resume-types'
+import { MarkdownResumePreview } from '@/components/resume/markdown-resume-preview'
 
 interface DocumentPreviewDialogProps {
   document: GeneratedDocument | null
@@ -57,12 +59,7 @@ export function DocumentPreviewDialog({
               </DialogDescription>
             </div>
             {isCoverLetter && (
-              <Button
-                onClick={handleCopyText}
-                variant="outline"
-                size="sm"
-                className="ml-4"
-              >
+              <Button onClick={handleCopyText} variant="outline" size="sm" className="ml-4">
                 {copied ? (
                   <>
                     <Check className="h-4 w-4 mr-2 text-green-600" />
@@ -89,11 +86,7 @@ export function DocumentPreviewDialog({
               }
             />
           )}
-          {isResume && (
-            <ResumePreview
-              content={document.structured_data as unknown as GeneratedResumeContent}
-            />
-          )}
+          {isResume && <ResumePreviewSwitch structuredData={document.structured_data} />}
         </div>
       </DialogContent>
     </Dialog>
@@ -108,6 +101,17 @@ function CoverLetterPreview({ text }: { text: string }) {
       </div>
     </div>
   )
+}
+
+function ResumePreviewSwitch({ structuredData }: { structuredData: unknown }) {
+  const data = structuredData as Record<string, unknown>
+  const isV3 = data?.markdown != null
+
+  if (isV3) {
+    return <MarkdownResumePreview markdown={data.markdown as string} />
+  }
+
+  return <ResumePreview content={structuredData as unknown as GeneratedResumeContent} />
 }
 
 function ResumePreview({ content }: { content: GeneratedResumeContent }) {
@@ -126,9 +130,7 @@ function ResumePreview({ content }: { content: GeneratedResumeContent }) {
       {/* Experience */}
       {content.experience && content.experience.length > 0 && (
         <div>
-          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">
-            Experience
-          </h3>
+          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">Experience</h3>
           <div className="space-y-4">
             {content.experience.map((exp, idx) => (
               <div key={idx} className="border-l-2 border-accent-teal pl-4">
@@ -139,9 +141,7 @@ function ResumePreview({ content }: { content: GeneratedResumeContent }) {
                   </div>
                   <p className="text-xs text-secondary/60">{exp.dates}</p>
                 </div>
-                {exp.location && (
-                  <p className="text-xs text-secondary/60 mt-1">{exp.location}</p>
-                )}
+                {exp.location && <p className="text-xs text-secondary/60 mt-1">{exp.location}</p>}
                 <ul className="mt-2 space-y-1 text-sm list-disc list-inside">
                   {exp.bullets.map((bullet, bidx) => (
                     <li key={bidx} className="text-secondary/80">
@@ -158,9 +158,7 @@ function ResumePreview({ content }: { content: GeneratedResumeContent }) {
       {/* Education */}
       {content.education && content.education.length > 0 && (
         <div>
-          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">
-            Education
-          </h3>
+          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">Education</h3>
           <div className="space-y-3">
             {content.education.map((edu, idx) => (
               <div key={idx} className="border-l-2 border-accent-orange pl-4">
@@ -171,9 +169,7 @@ function ResumePreview({ content }: { content: GeneratedResumeContent }) {
                   </div>
                   <p className="text-xs text-secondary/60">{edu.graduation}</p>
                 </div>
-                {edu.gpa && (
-                  <p className="text-xs text-secondary/60 mt-1">GPA: {edu.gpa}</p>
-                )}
+                {edu.gpa && <p className="text-xs text-secondary/60 mt-1">GPA: {edu.gpa}</p>}
               </div>
             ))}
           </div>
@@ -183,34 +179,30 @@ function ResumePreview({ content }: { content: GeneratedResumeContent }) {
       {/* Skills */}
       {content.skills && (
         <div>
-          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">
-            Skills
-          </h3>
+          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">Skills</h3>
           <div className="space-y-2">
-            {content.skills.technical && content.skills.technical.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-secondary/70 mb-1">
-                  Technical Skills
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {content.skills.technical.map((skill, idx) => (
-                    <span
-                      key={idx}
-                      className="px-3 py-1 bg-accent-teal/10 text-accent-teal rounded-full text-xs font-medium"
-                    >
-                      {skill}
-                    </span>
-                  ))}
+            {!isSkillsV2(content.skills) &&
+              content.skills.technical &&
+              content.skills.technical.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-secondary/70 mb-1">Technical Skills</p>
+                  <div className="flex flex-wrap gap-2">
+                    {content.skills.technical.map((skill: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-accent-teal/10 text-accent-teal rounded-full text-xs font-medium"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             {content.skills.other && content.skills.other.length > 0 && (
               <div>
-                <p className="text-sm font-medium text-secondary/70 mb-1 mt-3">
-                  Other Skills
-                </p>
+                <p className="text-sm font-medium text-secondary/70 mb-1 mt-3">Other Skills</p>
                 <div className="flex flex-wrap gap-2">
-                  {content.skills.other.map((skill, idx) => (
+                  {content.skills.other.map((skill: string, idx: number) => (
                     <span
                       key={idx}
                       className="px-3 py-1 bg-secondary/10 text-secondary rounded-full text-xs font-medium"
@@ -228,9 +220,7 @@ function ResumePreview({ content }: { content: GeneratedResumeContent }) {
       {/* Projects */}
       {content.projects && content.projects.length > 0 && (
         <div>
-          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">
-            Projects
-          </h3>
+          <h3 className="font-lora font-semibold text-lg text-secondary mb-3">Projects</h3>
           <div className="space-y-3">
             {content.projects.map((proj, idx) => (
               <div key={idx} className="border-l-2 border-accent-orange pl-4">
