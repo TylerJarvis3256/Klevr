@@ -221,9 +221,6 @@ export async function searchAdzunaJobs(params: AdzunaSearchParams): Promise<Adzu
   // Build URL with page in path, other params as query string
   const url = buildAdzunaUrl(`search/${page}`, queryParams)
 
-  // Debug: Check if HTTP change took effect
-  console.warn('[Adzuna] Full API URL:', url)
-
   try {
     // Make request (follow redirects)
     const response = await fetch(url, {

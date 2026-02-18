@@ -52,12 +52,10 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    console.warn('POST /api/profile/projects body:', JSON.stringify(body, null, 2))
 
     const parsed = createProjectSchema.safeParse(body)
 
     if (!parsed.success) {
-      console.error('Validation failed:', JSON.stringify(parsed.error.format(), null, 2))
       return NextResponse.json(
         { error: 'Invalid input', details: parsed.error.flatten() },
         { status: 400 }

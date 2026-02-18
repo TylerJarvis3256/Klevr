@@ -138,7 +138,6 @@ export async function cleanupExpiredCache(): Promise<number> {
       },
     })
 
-    console.warn(`[Cache] Cleaned up ${result.count} expired cache entries`)
     return result.count
   } catch (error) {
     console.error('[Cache] Error cleaning up expired cache:', error)

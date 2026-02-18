@@ -48,6 +48,9 @@ next-env.d.ts
 CLAUDE.md
 .playwright-mcp/
 
+# local dev artifacts
+storage/
+
 # implementation and setup docs
 IMPLEMENTATION-PLAN.md
 INNGEST-SETUP.md
@@ -59,4 +62,3 @@ STAGE-05-FIT-ASSESSMENT.md
 STAGE-06-DOCUMENT-GENERATION.md
 STAGE-07-COMPANY-RESEARCH.md
 STAGES-08-14-SUMMARY.md
-nul
