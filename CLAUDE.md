@@ -195,6 +195,7 @@ vi.mock('@/inngest/client', () => ({ inngest: mockInngest }))
 14. **Type everything** — `strict: true`, no untyped `any` (warn on explicit any)
 15. **Error classes for AI** — use `AIError`, `RateLimitError`, `TimeoutError`, `ValidationError`, `UsageLimitError` from `lib/errors.ts`
 16. **No em dashes or en dashes** — never use `—` (em dash) or `–` (en dash) in git commit messages, code comments, or informative files (README, docs, markdown). Use a regular hyphen `-` instead
+17. **Keep the README in sync** — when a major feature, architectural change, or structural addition is made (new tech stack entry, new AI pipeline, new data model, new API surface, new section of the app, etc.), update `README.md` to reflect the change. Match the existing README style: tech stack table with rationale, Mermaid ER diagrams for data model changes, ASCII pipeline diagrams for workflow changes, and detailed prose in Engineering Highlights for non-trivial systems. Do not add trivial changes (bug fixes, minor refactors, internal-only utilities) to the README
 
 ### API Route Pattern
 

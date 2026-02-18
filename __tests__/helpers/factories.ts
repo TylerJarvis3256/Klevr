@@ -198,6 +198,25 @@ export function createSemanticAnalysis(overrides: Record<string, unknown> = {}) 
   }
 }
 
+// ─── ResumeUpload ─────────────────────────────────────
+
+export function createResumeUpload(overrides: Record<string, unknown> = {}) {
+  const id = nextId()
+  return {
+    id,
+    user_id: `user-${id}`,
+    file_name: 'resume.pdf',
+    file_type: 'application/pdf',
+    file_size: 102400,
+    storage_url: `resumes/user-${id}/${Date.now()}-resume.pdf`,
+    source: 'upload',
+    parsed_at: FIXED_DATE,
+    parsing_error: null,
+    created_at: FIXED_DATE,
+    ...overrides,
+  }
+}
+
 // ─── Project ───────────────────────────────────────────
 
 export function createProject(overrides: Record<string, unknown> = {}) {

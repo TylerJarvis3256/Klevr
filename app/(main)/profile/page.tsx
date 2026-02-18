@@ -758,7 +758,12 @@ export default function ProfilePage() {
               />
 
               <div className="mt-6 pt-6 border-t border-secondary/10">
-                <ResumeUploader onSuccess={loadResumes} />
+                <ResumeUploader
+                  onSuccess={() => {
+                    loadResumes()
+                    loadProfile()
+                  }}
+                />
               </div>
             </>
           )}
