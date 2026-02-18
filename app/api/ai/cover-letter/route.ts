@@ -5,6 +5,10 @@ import { createAiTask } from '@/lib/ai-tasks'
 
 const schema = z.object({
   applicationId: z.string(),
+  voice: z
+    .enum(['professional', 'casual', 'friendly', 'research'])
+    .optional()
+    .default('professional'),
 })
 
 export async function POST(request: Request) {
@@ -15,13 +19,13 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { applicationId } = schema.parse(body)
+    const { applicationId, voice } = schema.parse(body)
 
     const taskId = await createAiTask({
       userId: user.id,
       type: 'COVER_LETTER_GENERATION',
       applicationId,
-      data: {},
+      data: { voice },
     })
 
     return NextResponse.json({ taskId })

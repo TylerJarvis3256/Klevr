@@ -1,12 +1,14 @@
 import { inngest } from '@/lib/inngest'
 import { prisma } from '@/lib/prisma'
-import { generateCoverLetterContent } from '@/lib/cover-letter-generator'
-import { renderCoverLetterPDF } from '@/lib/pdf/renderer'
+import { generateCoverLetterV2 } from '@/lib/cover-letter-engine'
+import { buildStructuredProfile } from '@/lib/resume-generator'
+import { renderCoverLetterPDFv2 } from '@/lib/pdf/renderer'
 import { uploadBuffer, generateDocumentKey } from '@/lib/s3'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
 import { logAiTaskComplete } from '@/lib/activity-log'
 import { DocumentType, AiTaskStatus } from '@prisma/client'
 import { ParsedResume } from '@/lib/resume-parser'
+import type { CoverLetterVoice } from '@/lib/cover-letter-types'
 
 export const coverLetterGenerationFunction = inngest.createFunction(
   {
@@ -16,7 +18,8 @@ export const coverLetterGenerationFunction = inngest.createFunction(
   },
   { event: 'cover-letter/generate' },
   async ({ event, step }) => {
-    const { userId, taskId, applicationId } = event.data
+    const { userId, taskId, applicationId, voice: rawVoice } = event.data
+    const voice = (rawVoice as CoverLetterVoice) || 'professional'
 
     // Step 1: Check usage limit
     const canProceed = await step.run('check-usage-limit', async () => {
@@ -59,9 +62,7 @@ export const coverLetterGenerationFunction = inngest.createFunction(
               include: {
                 Profile: true,
                 Project: {
-                  orderBy: {
-                    display_order: 'asc',
-                  },
+                  orderBy: { display_order: 'asc' },
                 },
               },
             },
@@ -77,46 +78,39 @@ export const coverLetterGenerationFunction = inngest.createFunction(
         throw new Error('User has not confirmed resume')
       }
 
-      // Step 4: Generate content
-      const content = await step.run('generate-content', async () => {
-        return generateCoverLetterContent(
-          userId,
-          application.User.Profile!.full_name || 'Your Name',
+      // Step 4: Build structured profile
+      const profileData = await step.run('build-profile', async () => {
+        return buildStructuredProfile(
           application.User.Profile!.parsed_resume as unknown as ParsedResume,
-          application.Job as any,
-          application.User.Profile!.skills || [],
+          {
+            full_name: application.User.Profile!.full_name,
+            skills: application.User.Profile!.skills || [],
+          },
+          application.User.email,
           application.User.Project || []
         )
       })
 
-      // Step 5: Render PDF
-      const pdfBuffer = await step.run('render-pdf', async () => {
-        return renderCoverLetterPDF(
-          content,
-          {
-            name: application.User.Profile!.full_name || 'Your Name',
-            email: application.User.email,
-            phone: (application.User.Profile!.parsed_resume as any)?.personal?.phone,
-          },
-          {
-            title: application.Job.title,
-            company: application.Job.company,
-          }
-        )
+      // Step 5 + 6: Run semantic analysis + generate content via V2 engine
+      const engineOutput = await step.run('generate-cover-letter-v2', async () => {
+        return generateCoverLetterV2(userId, profileData, application.Job as any, voice)
       })
 
-      // Step 6: Upload to S3
+      // Step 7: Render PDF via Markdown -> HTML -> Puppeteer
+      const pdfBuffer = await step.run('render-pdf', async () => {
+        return renderCoverLetterPDFv2(engineOutput.markdown)
+      })
+
+      // Step 8: Upload to S3
       const key = await step.run('upload-to-s3', async () => {
         const documentKey = generateDocumentKey(applicationId, 'cover-letter')
-        // Ensure pdfBuffer is a proper Buffer
         const buffer = Buffer.isBuffer(pdfBuffer) ? pdfBuffer : Buffer.from(pdfBuffer as any)
         await uploadBuffer(documentKey, buffer, 'application/pdf')
         return documentKey
       })
 
-      // Step 7: Save document record
+      // Step 9: Save document record with rich structured_data
       const document = await step.run('save-document', async () => {
-        // Generate display name: [User Name] [Job Title] [Company] Cover Letter [Month] [Year]
         const now = new Date()
         const month = now.toLocaleString('en-US', { month: 'short' })
         const year = now.getFullYear()
@@ -129,19 +123,23 @@ export const coverLetterGenerationFunction = inngest.createFunction(
             type: DocumentType.COVER_LETTER,
             storage_url: key,
             display_name: displayName,
-            structured_data: { content } as any,
-            prompt_version: 'cover-letter-generate-v1.0.0',
-            model_used: 'gpt-4o-2024-05-13',
+            structured_data: {
+              content: engineOutput.content,
+              markdown: engineOutput.markdown,
+              metadata: engineOutput.metadata,
+            } as any,
+            prompt_version: 'cover-letter-generate-v2.0.0',
+            model_used: 'claude-sonnet-4-5-20250929',
           },
         })
       })
 
-      // Step 8: Increment usage
+      // Step 10: Increment usage
       await step.run('increment-usage', async () => {
         await incrementUsage(userId, 'COVER_LETTER_GENERATION')
       })
 
-      // Step 9: Mark success and log activity
+      // Step 11: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
           where: { id: taskId },
@@ -152,13 +150,9 @@ export const coverLetterGenerationFunction = inngest.createFunction(
           },
         })
 
-        // Log cover letter generated
-        await logAiTaskComplete(
-          userId,
-          applicationId,
-          'COVER_LETTER_GENERATED',
-          { document_id: document.id }
-        )
+        await logAiTaskComplete(userId, applicationId, 'COVER_LETTER_GENERATED', {
+          document_id: document.id,
+        })
       })
 
       return { documentId: document.id }

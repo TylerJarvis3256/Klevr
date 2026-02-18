@@ -9,6 +9,14 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { DocumentPreviewDialog } from './document-preview-dialog'
 import { useSSETask } from '@/lib/hooks/use-sse-task'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { COVER_LETTER_VOICES, VOICE_LABELS, type CoverLetterVoice } from '@/lib/cover-letter-types'
 
 interface DocumentsListProps {
   documents: GeneratedDocument[]
@@ -25,6 +33,7 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
   const [previewOpen, setPreviewOpen] = useState(false)
   const [editingDocId, setEditingDocId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [coverLetterVoice, setCoverLetterVoice] = useState<CoverLetterVoice>('professional')
 
   // Find in-progress resume and cover letter generation tasks
   const resumeTask = documentTasks.find(
@@ -82,7 +91,7 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
       const response = await fetch('/api/ai/cover-letter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationId }),
+        body: JSON.stringify({ applicationId, voice: coverLetterVoice }),
       })
 
       if (!response.ok) {
@@ -229,24 +238,41 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
               </>
             )}
           </Button>
-          <Button
-            onClick={handleGenerateCoverLetter}
-            disabled={isGeneratingCoverLetter}
-            variant="default"
-            size="sm"
-          >
-            {isGeneratingCoverLetter ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <FileText className="h-4 w-4 mr-2" />
-                Generate Cover Letter
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Select
+              value={coverLetterVoice}
+              onValueChange={v => setCoverLetterVoice(v as CoverLetterVoice)}
+            >
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {COVER_LETTER_VOICES.map(v => (
+                  <SelectItem key={v} value={v}>
+                    <span className="text-xs">{VOICE_LABELS[v]}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleGenerateCoverLetter}
+              disabled={isGeneratingCoverLetter}
+              variant="default"
+              size="sm"
+            >
+              {isGeneratingCoverLetter ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Generate Cover Letter
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
