@@ -1,23 +1,16 @@
 import { renderToBuffer } from '@react-pdf/renderer'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { ClassicATSResume } from './templates/classic-ats'
-import type { GeneratedResumeContent } from '@/lib/resume-generator'
+import { markdownToHtml } from './markdown-to-html'
+import { htmlToPdf } from './html-to-pdf'
 import React from 'react'
 
-export async function renderResumePDF(
-  content: GeneratedResumeContent,
-  userInfo: {
-    name: string
-    email: string
-    phone?: string
-    location?: string
-  },
-  _template: 'classic-ats' | 'modern-ats' = 'classic-ats'
-): Promise<Buffer> {
-  // Use ClassicATSResume for all templates for now
-  const doc = <ClassicATSResume content={content} userInfo={userInfo} />
-  const buffer = await renderToBuffer(doc)
-  return Buffer.from(buffer)
+/**
+ * Render a resume PDF from markdown (V3 pipeline).
+ * Converts markdown → HTML → PDF via headless Chromium.
+ */
+export async function renderResumePDF(markdown: string): Promise<Buffer> {
+  const html = markdownToHtml(markdown)
+  return htmlToPdf(html)
 }
 
 export async function renderCoverLetterPDF(

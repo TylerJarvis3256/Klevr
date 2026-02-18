@@ -1,6 +1,7 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import type { GeneratedResumeContent } from '@/lib/resume-generator'
+import { isSkillsV2 } from '@/lib/resume-generator'
 
 // Classic ATS-friendly resume template with clean, single-column layout
 const styles = StyleSheet.create({
@@ -159,23 +160,49 @@ export function ClassicATSResume({ content, userInfo }: ClassicATSResumeProps) {
         )}
 
         {/* Skills */}
-        {content.skills && (content.skills.technical.length > 0 || content.skills.other.length > 0) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>SKILLS</Text>
-            <View style={styles.skillsGrid}>
-              {content.skills.technical.map((skill, i) => (
-                <Text key={i} style={styles.skill}>
-                  {skill}
-                </Text>
-              ))}
-              {content.skills.other.map((skill, i) => (
-                <Text key={i} style={styles.skill}>
-                  {skill}
-                </Text>
-              ))}
-            </View>
-          </View>
-        )}
+        {content.skills &&
+          (() => {
+            const skills = content.skills
+            if (isSkillsV2(skills)) {
+              const allSkills = [
+                ...skills.languages,
+                ...skills.frameworks,
+                ...skills.tools,
+                ...skills.other,
+              ]
+              if (allSkills.length === 0) return null
+              return (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>SKILLS</Text>
+                  <View style={styles.skillsGrid}>
+                    {allSkills.map((skill: string, i: number) => (
+                      <Text key={i} style={styles.skill}>
+                        {skill}
+                      </Text>
+                    ))}
+                  </View>
+                </View>
+              )
+            }
+            if (skills.technical.length === 0 && skills.other.length === 0) return null
+            return (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>SKILLS</Text>
+                <View style={styles.skillsGrid}>
+                  {skills.technical.map((skill: string, i: number) => (
+                    <Text key={i} style={styles.skill}>
+                      {skill}
+                    </Text>
+                  ))}
+                  {skills.other.map((skill: string, i: number) => (
+                    <Text key={i} style={styles.skill}>
+                      {skill}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            )
+          })()}
       </Page>
     </Document>
   )

@@ -6,6 +6,7 @@ export interface PromptMetadata {
   description: string
   model: string
   maxTokens?: number
+  temperature?: number
 }
 
 /**
@@ -20,7 +21,7 @@ export async function loadPrompt(
 
   // Extract metadata from front matter (if exists)
   const metadataMatch = content.match(/^---\n([\s\S]+?)\n---/)
-  let metadata: PromptMetadata = {
+  const metadata: PromptMetadata = {
     version: '1.0.0',
     description: '',
     model: 'gpt-4o-2024-05-13',
@@ -34,6 +35,7 @@ export async function loadPrompt(
       if (key === 'description') metadata.description = value
       if (key === 'model') metadata.model = value
       if (key === 'maxTokens') metadata.maxTokens = parseInt(value)
+      if (key === 'temperature') metadata.temperature = parseFloat(value)
     })
   }
 

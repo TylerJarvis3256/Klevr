@@ -12,14 +12,14 @@ Generate a professional, personalized cover letter.
 ## Input (JSON)
 
 {
-"user_name": "Full Name",
-"user_resume": { /_ ParsedResume _/ },
+"user*name": "Full Name",
+"user_resume": { /* ParsedResume _/ },
 "job": {
 "title": "Job Title",
 "company": "Company Name",
 "description": "..."
 },
-"profile_skills": [ /_ User's current skills from profile (authoritative source) _/ ]
+"profile_skills": [ /_ User's current skills from profile (authoritative source) \_/ ]
 }
 
 ## Output Format (Plain Text)
@@ -71,3 +71,4 @@ Generate a professional, personalized cover letter.
 - Make it specific to THIS job and company
 - Use achievements from the resume that relate to job requirements
 - Show genuine enthusiasm without being over-the-top
+- NEVER use em dashes (\u2014) or en dashes (\u2013). Use a regular hyphen ( - ) or restructure the sentence instead

@@ -20,6 +20,7 @@ export default function OnboardingResumeUploadPage() {
     setIsUploading(true)
     try {
       // Step 1: Get presigned URL
+      toast.info('Uploading file...')
       const urlRes = await fetch('/api/upload/resume-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,25 +51,27 @@ export default function OnboardingResumeUploadPage() {
         throw new Error('Failed to upload file')
       }
 
-      // Step 3: Confirm upload
-      const confirmRes = await fetch('/api/resume/upload', {
+      // Step 3: Server extracts text and parses resume
+      toast.info('Parsing resume...')
+      const parseRes = await fetch('/api/resume/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           key,
-          filename: file.name,
+          fileType: file.type,
         }),
       })
 
-      if (!confirmRes.ok) {
-        throw new Error('Failed to confirm upload')
+      if (!parseRes.ok) {
+        const error = await parseRes.json()
+        throw new Error(error.error || 'Failed to parse resume')
       }
 
-      toast.success('Resume uploaded successfully!')
-      // Redirect to review page to manually fill in resume
+      toast.success('Resume uploaded and parsed successfully!')
       router.push('/onboarding/resume-review')
     } catch (error) {
-      toast.error('Failed to upload resume. Please try again.')
+      console.error('Upload error:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to upload resume. Please try again.')
     } finally {
       setIsUploading(false)
     }
@@ -114,11 +117,8 @@ export default function OnboardingResumeUploadPage() {
 
         <div className="mt-8 bg-white/95 backdrop-blur-sm rounded-2xl shadow-card border border-secondary/10 p-8 md:p-10">
           <h1 className="font-lora text-3xl font-bold mb-2 text-secondary">Upload your resume</h1>
-          <p className="text-base text-secondary/80 mb-2">
-            Upload your resume file or paste the text for AI-powered parsing.
-          </p>
-          <p className="text-sm text-secondary/70 mb-8">
-            You can also skip this step and fill in your information manually in the next step.
+          <p className="text-base text-secondary/80 mb-8">
+            Upload your resume file (PDF or DOCX) or paste the text for AI-powered parsing.
           </p>
 
         {uploadMode === 'file' ? (
