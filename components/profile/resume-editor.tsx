@@ -26,39 +26,47 @@ const resumeSchema = z.object({
     github: z.string().url().nullable().optional().or(z.literal('')),
     website: z.string().url().nullable().optional().or(z.literal('')),
   }),
-  education: z.array(z.object({
-    school: z.string().min(1, 'School is required'),
-    degree: z.string().nullable().optional(),
-    major: z.string().nullable().optional(),
-    graduationDate: z.string().nullable().optional(),
-    gpa: z.string().nullable().optional(),
-  })),
-  experience: z.array(z.object({
-    title: z.string().min(1, 'Title is required'),
-    company: z.string().min(1, 'Company is required'),
-    location: z.string().nullable().optional(),
-    startDate: z.string().nullable().optional(),
-    endDate: z.string().nullable().optional(),
-    current: z.boolean(),
-    bullets: z.array(z.string()),
-  })),
-  projects: z.array(z.object({
-    name: z.string().min(1, 'Project name is required'),
-    description: z.string().nullable().optional(),
-    technologies: z.array(z.string()),
-    url: z.string().url().nullable().optional().or(z.literal('')),
-  })),
+  education: z.array(
+    z.object({
+      school: z.string().min(1, 'School is required'),
+      degree: z.string().nullable().optional(),
+      major: z.string().nullable().optional(),
+      graduationDate: z.string().nullable().optional(),
+      gpa: z.string().nullable().optional(),
+    })
+  ),
+  experience: z.array(
+    z.object({
+      title: z.string().min(1, 'Title is required'),
+      company: z.string().min(1, 'Company is required'),
+      location: z.string().nullable().optional(),
+      startDate: z.string().nullable().optional(),
+      endDate: z.string().nullable().optional(),
+      current: z.boolean(),
+      bullets: z.array(z.string()),
+    })
+  ),
+  projects: z.array(
+    z.object({
+      name: z.string().min(1, 'Project name is required'),
+      description: z.string().nullable().optional(),
+      technologies: z.array(z.string()),
+      url: z.string().url().nullable().optional().or(z.literal('')),
+    })
+  ),
   skills: z.object({
     languages: z.array(z.string()),
     frameworks: z.array(z.string()),
     tools: z.array(z.string()),
     other: z.array(z.string()),
   }),
-  certifications: z.array(z.object({
-    name: z.string().min(1, 'Certification name is required'),
-    issuer: z.string().nullable().optional(),
-    date: z.string().nullable().optional(),
-  })),
+  certifications: z.array(
+    z.object({
+      name: z.string().min(1, 'Certification name is required'),
+      issuer: z.string().nullable().optional(),
+      date: z.string().nullable().optional(),
+    })
+  ),
 })
 
 type ResumeFormData = z.infer<typeof resumeSchema>
@@ -69,7 +77,11 @@ interface ResumeEditorProps {
   submitLabel?: string
 }
 
-export function ResumeEditor({ initialData, onSubmit, submitLabel = 'Save Resume' }: ResumeEditorProps) {
+export function ResumeEditor({
+  initialData,
+  onSubmit,
+  submitLabel = 'Save Resume',
+}: ResumeEditorProps) {
   const form = useForm<ResumeFormData>({
     resolver: zodResolver(resumeSchema),
     defaultValues: initialData || {
@@ -82,22 +94,26 @@ export function ResumeEditor({ initialData, onSubmit, submitLabel = 'Save Resume
     },
   })
 
-  const { fields: educationFields, append: appendEducation, remove: removeEducation } = useFieldArray({
+  const {
+    fields: educationFields,
+    append: appendEducation,
+    remove: removeEducation,
+  } = useFieldArray({
     control: form.control,
     name: 'education',
   })
 
-  const { fields: _experienceFields, append: _appendExperience, remove: _removeExperience } = useFieldArray({
+  useFieldArray({
     control: form.control,
     name: 'experience',
   })
 
-  const { fields: _projectFields, append: _appendProject, remove: _removeProject } = useFieldArray({
+  useFieldArray({
     control: form.control,
     name: 'projects',
   })
 
-  const { fields: _certificationFields, append: _appendCertification, remove: _removeCertification } = useFieldArray({
+  useFieldArray({
     control: form.control,
     name: 'certifications',
   })
@@ -172,7 +188,11 @@ export function ResumeEditor({ initialData, onSubmit, submitLabel = 'Save Resume
                 <FormItem>
                   <FormLabel>LinkedIn</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value || ''} placeholder="https://linkedin.com/in/..." />
+                    <Input
+                      {...field}
+                      value={field.value || ''}
+                      placeholder="https://linkedin.com/in/..."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -185,7 +205,11 @@ export function ResumeEditor({ initialData, onSubmit, submitLabel = 'Save Resume
                 <FormItem>
                   <FormLabel>GitHub</FormLabel>
                   <FormControl>
-                    <Input {...field} value={field.value || ''} placeholder="https://github.com/..." />
+                    <Input
+                      {...field}
+                      value={field.value || ''}
+                      placeholder="https://github.com/..."
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -202,7 +226,9 @@ export function ResumeEditor({ initialData, onSubmit, submitLabel = 'Save Resume
               type="button"
               variant="secondary"
               size="sm"
-              onClick={() => appendEducation({ school: '', degree: '', major: '', graduationDate: '', gpa: '' })}
+              onClick={() =>
+                appendEducation({ school: '', degree: '', major: '', graduationDate: '', gpa: '' })
+              }
             >
               <Plus className="h-4 w-4 mr-1" />
               Add Education

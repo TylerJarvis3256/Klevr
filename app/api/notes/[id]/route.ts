@@ -65,7 +65,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
     })
 
     return NextResponse.json(updatedNote)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('PATCH /api/notes/[id] error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
@@ -102,7 +102,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     })
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('DELETE /api/notes/[id] error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

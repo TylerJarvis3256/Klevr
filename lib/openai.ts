@@ -116,7 +116,7 @@ export function parseOpenAIJson<T>(content: string | null): T {
 
   try {
     return JSON.parse(content) as T
-  } catch (error) {
+  } catch {
     console.error('Failed to parse OpenAI JSON:', content)
     throw new Error('Invalid JSON from OpenAI')
   }

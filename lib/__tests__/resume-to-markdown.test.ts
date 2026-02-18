@@ -193,9 +193,11 @@ describe('generateResumeMarkdown', () => {
   // ─── V3: Professional Lead ───────────────────────────
 
   it('renders professional lead without heading when lead field exists', () => {
-    const content = createFullContent() as any
-    content.lead = 'Software Engineer building scalable web apps.'
-    content.summary = '' // V3 sets summary to empty
+    const content: GeneratedResumeContent & { lead?: string } = {
+      ...createFullContent(),
+      lead: 'Software Engineer building scalable web apps.',
+      summary: '',
+    }
 
     const md = generateResumeMarkdown(content, defaultUserInfo)
 
@@ -248,7 +250,7 @@ describe('generateResumeMarkdown', () => {
       frameworks: ['React', 'Express'],
       tools: ['Docker', 'AWS'],
       other: ['Agile'],
-    } as any
+    }
 
     const md = generateResumeMarkdown(content, defaultUserInfo)
 
@@ -277,7 +279,7 @@ describe('generateResumeMarkdown', () => {
       frameworks: [],
       tools: ['Docker'],
       other: [],
-    } as any
+    }
 
     const md = generateResumeMarkdown(content, defaultUserInfo)
 
@@ -288,8 +290,11 @@ describe('generateResumeMarkdown', () => {
   })
 
   it('renders project bullets when present', () => {
-    const content = createFullContent() as any
-    content.projects[0].bullets = ['Implemented real-time notifications', 'Achieved 99.9% uptime']
+    const content = createFullContent()
+    ;(content.projects[0] as unknown as { bullets: string[] }).bullets = [
+      'Implemented real-time notifications',
+      'Achieved 99.9% uptime',
+    ]
 
     const md = generateResumeMarkdown(content, defaultUserInfo)
 

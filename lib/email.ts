@@ -28,7 +28,7 @@ export async function sendSavedSearchEmail(
   params: SavedSearchEmailParams
 ): Promise<{ success: boolean; error?: string }> {
   if (!isResendConfigured()) {
-    console.log('[Email] Resend not configured - skipping email send')
+    console.warn('[Email] Resend not configured - skipping email send')
     return { success: false, error: 'Email service not configured' }
   }
 

@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { BulletEditor } from './bullet-editor'
-import type { JobExperience, Bullet } from '@prisma/client'
+import type { JobExperience, Bullet } from '@/types/models'
 
 type ExperienceWithBullets = JobExperience & { Bullets: Bullet[] }
 
@@ -105,7 +105,14 @@ export function ExperienceEditor({
       }
 
       const data = await res.json()
-      setSuggestions(data.suggestions.map((s: any) => ({ ...s, selected: false })))
+      setSuggestions(
+        data.suggestions.map(
+          (s: { text: string; tags: string[]; category: string; priority: number }) => ({
+            ...s,
+            selected: false,
+          })
+        )
+      )
       setShowSuggestionsModal(true)
     } catch (error) {
       console.error('Suggestion error:', error)

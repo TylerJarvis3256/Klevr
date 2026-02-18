@@ -33,9 +33,7 @@ export async function GET(request: Request) {
       results_per_page: searchParams.get('results_per_page')
         ? parseInt(searchParams.get('results_per_page')!)
         : 10,
-      page: searchParams.get('page')
-        ? parseInt(searchParams.get('page')!)
-        : 1,
+      page: searchParams.get('page') ? parseInt(searchParams.get('page')!) : 1,
       sort_by: (searchParams.get('sort_by') as 'date' | 'salary') || 'date',
     }
 
@@ -68,27 +66,26 @@ export async function GET(request: Request) {
     }).catch(err => console.error('Failed to log search activity:', err))
 
     return NextResponse.json(results)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error searching jobs:', error)
 
+    const message = error instanceof Error ? error.message : ''
+
     // Return user-friendly error messages
-    if (error.message.includes('Rate limit exceeded')) {
+    if (message.includes('Rate limit exceeded')) {
       return NextResponse.json(
         { error: 'Search rate limit exceeded. Please try again in a few minutes.' },
         { status: 429 }
       )
     }
 
-    if (error.message.includes('Adzuna API')) {
+    if (message.includes('Adzuna API')) {
       return NextResponse.json(
         { error: 'Job search service is temporarily unavailable. Please try again later.' },
         { status: 503 }
       )
     }
 
-    return NextResponse.json(
-      { error: 'Failed to search jobs. Please try again.' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to search jobs. Please try again.' }, { status: 500 })
   }
 }

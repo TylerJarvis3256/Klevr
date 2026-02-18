@@ -64,7 +64,9 @@ export const AdzunaJobSchema = z.object({
   redirect_url: z.string().url(),
   salary_min: z.number().optional(),
   salary_max: z.number().optional(),
-  salary_is_predicted: z.union([z.literal('0'), z.literal('1'), z.literal(0), z.literal(1), z.boolean()]).optional(),
+  salary_is_predicted: z
+    .union([z.literal('0'), z.literal('1'), z.literal(0), z.literal(1), z.boolean()])
+    .optional(),
   contract_type: z.string().optional(),
   contract_time: z.string().optional(),
   category: AdzunaCategorySchema.optional(),
@@ -174,7 +176,10 @@ export async function logAdzunaRequest(
 /**
  * Build Adzuna API URL with parameters
  */
-function buildAdzunaUrl(endpoint: string, params: Record<string, any>): string {
+function buildAdzunaUrl(
+  endpoint: string,
+  params: Record<string, string | number | undefined>
+): string {
   if (!ADZUNA_APP_ID || !ADZUNA_APP_KEY) {
     throw new Error('Adzuna API credentials not configured')
   }
@@ -200,9 +205,7 @@ function buildAdzunaUrl(endpoint: string, params: Record<string, any>): string {
 /**
  * Search for jobs using Adzuna API
  */
-export async function searchAdzunaJobs(
-  params: AdzunaSearchParams
-): Promise<AdzunaSearchResponse> {
+export async function searchAdzunaJobs(params: AdzunaSearchParams): Promise<AdzunaSearchResponse> {
   // Validate params
   const validatedParams = AdzunaSearchParamsSchema.parse(params)
 
@@ -219,7 +222,7 @@ export async function searchAdzunaJobs(
   const url = buildAdzunaUrl(`search/${page}`, queryParams)
 
   // Debug: Check if HTTP change took effect
-  console.log('[Adzuna] Full API URL:', url)
+  console.warn('[Adzuna] Full API URL:', url)
 
   try {
     // Make request (follow redirects)

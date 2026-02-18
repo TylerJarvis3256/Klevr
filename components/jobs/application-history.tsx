@@ -11,7 +11,7 @@ import {
   Trash2,
   PlusCircle,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
 } from 'lucide-react'
 import { Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 interface Activity {
   id: string
   type: ActivityType
-  metadata: Record<string, any> | null
+  metadata: Record<string, unknown> | null
   created_at: string
 }
 
@@ -33,7 +33,7 @@ const ACTIVITY_CONFIG: Record<
     icon: React.ElementType
     label: string
     color: string
-    getDescription: (metadata: Record<string, any> | null) => string
+    getDescription: (metadata: Record<string, unknown> | null) => string
   }
 > = {
   JOB_CREATED: {
@@ -46,9 +46,9 @@ const ACTIVITY_CONFIG: Record<
     icon: RefreshCw,
     label: 'Status Changed',
     color: 'text-accent-orange',
-    getDescription: (metadata) =>
+    getDescription: metadata =>
       metadata?.from && metadata?.to
-        ? `Status changed from ${metadata.from} to ${metadata.to}`
+        ? `Status changed from ${String(metadata.from)} to ${String(metadata.to)}`
         : 'Status was updated',
   },
   JOB_SCORING_STARTED: {
@@ -61,9 +61,9 @@ const ACTIVITY_CONFIG: Record<
     icon: CheckCircle2,
     label: 'Fit Analysis Complete',
     color: 'text-success',
-    getDescription: (metadata) =>
+    getDescription: metadata =>
       metadata?.fit_bucket
-        ? `Fit assessment completed - ${metadata.fit_bucket} match`
+        ? `Fit assessment completed - ${String(metadata.fit_bucket)} match`
         : 'Fit assessment completed',
   },
   RESUME_GENERATED: {
@@ -100,9 +100,9 @@ const ACTIVITY_CONFIG: Record<
     icon: Trash2,
     label: 'Document Deleted',
     color: 'text-error',
-    getDescription: (metadata) =>
+    getDescription: metadata =>
       metadata?.document_type
-        ? `${metadata.document_type.toLowerCase().replace('_', ' ')} was deleted`
+        ? `${String(metadata.document_type).toLowerCase().replace('_', ' ')} was deleted`
         : 'A document was deleted',
   },
   JOB_DISCOVERED: {
@@ -203,9 +203,7 @@ export function ApplicationHistory({ applicationId }: ApplicationHistoryProps) {
         <div className="h-16 w-16 rounded-xl bg-secondary/5 flex items-center justify-center mx-auto mb-4">
           <RefreshCw className="h-8 w-8 text-secondary/40" />
         </div>
-        <h3 className="font-lora text-xl font-semibold text-secondary mb-2">
-          No activity yet
-        </h3>
+        <h3 className="font-lora text-xl font-semibold text-secondary mb-2">No activity yet</h3>
         <p className="text-secondary/70">
           Activity will appear here as you work with this application
         </p>
@@ -225,9 +223,7 @@ export function ApplicationHistory({ applicationId }: ApplicationHistoryProps) {
         return (
           <div key={activity.id} className="relative flex gap-4">
             {/* Timeline line */}
-            {!isLast && (
-              <div className="absolute left-5 top-10 bottom-0 w-px bg-secondary/10" />
-            )}
+            {!isLast && <div className="absolute left-5 top-10 bottom-0 w-px bg-secondary/10" />}
 
             {/* Icon */}
             <div

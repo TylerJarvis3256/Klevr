@@ -18,17 +18,20 @@ export function FileUpload({ accept, maxSize, onUpload, isUploading, className }
   const [error, setError] = useState<string | null>(null)
   const [isDragActive, setIsDragActive] = useState(false)
 
-  const handleFileSelect = useCallback((file: File) => {
-    setError(null)
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      setError(null)
 
-    // Validate file size
-    if (file.size > maxSize) {
-      setError(`File size must be less than ${maxSize / (1024 * 1024)} MB`)
-      return
-    }
+      // Validate file size
+      if (file.size > maxSize) {
+        setError(`File size must be less than ${maxSize / (1024 * 1024)} MB`)
+        return
+      }
 
-    setSelectedFile(file)
-  }, [maxSize])
+      setSelectedFile(file)
+    },
+    [maxSize]
+  )
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -40,22 +43,28 @@ export function FileUpload({ accept, maxSize, onUpload, isUploading, className }
     setIsDragActive(false)
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragActive(false)
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault()
+      setIsDragActive(false)
 
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
-      handleFileSelect(files[0])
-    }
-  }, [handleFileSelect])
+      const files = Array.from(e.dataTransfer.files)
+      if (files.length > 0) {
+        handleFileSelect(files[0])
+      }
+    },
+    [handleFileSelect]
+  )
 
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (files && files.length > 0) {
-      handleFileSelect(files[0])
-    }
-  }, [handleFileSelect])
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files
+      if (files && files.length > 0) {
+        handleFileSelect(files[0])
+      }
+    },
+    [handleFileSelect]
+  )
 
   const handleUpload = async () => {
     if (!selectedFile) return
@@ -64,7 +73,7 @@ export function FileUpload({ accept, maxSize, onUpload, isUploading, className }
       setError(null)
       await onUpload(selectedFile)
       setSelectedFile(null)
-    } catch (err) {
+    } catch {
       setError('Upload failed. Please try again.')
     }
   }
@@ -113,7 +122,7 @@ export function FileUpload({ accept, maxSize, onUpload, isUploading, className }
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation()
                   handleRemove()
                 }}
@@ -129,16 +138,15 @@ export function FileUpload({ accept, maxSize, onUpload, isUploading, className }
               {isDragActive ? 'Drop your file here' : 'Drop your file here, or click to browse'}
             </p>
             <p className="text-sm text-secondary/70 mt-1">
-              {accept.includes('pdf') && accept.includes('docx') ? 'PDF or DOCX' : accept}, max {maxSize / (1024 * 1024)} MB
+              {accept.includes('pdf') && accept.includes('docx') ? 'PDF or DOCX' : accept}, max{' '}
+              {maxSize / (1024 * 1024)} MB
             </p>
           </>
         )}
       </div>
 
       {/* Error message */}
-      {error && (
-        <p className="text-sm text-status-error">{error}</p>
-      )}
+      {error && <p className="text-sm text-status-error">{error}</p>}
 
       {/* Upload button */}
       {selectedFile && !isUploading && (

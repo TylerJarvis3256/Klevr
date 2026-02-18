@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import { createSemanticAnalysis } from '@/__tests__/helpers'
+import type { SkillsV2 } from '@/lib/resume-types'
 
 // Mock OpenAI module (prevents initialization error from import chain)
 vi.mock('@/lib/openai', () => ({
@@ -34,6 +35,8 @@ import {
   type GovernableContent,
 } from '@/lib/one-page-governor'
 import type { SemanticJDAnalysis } from '@/lib/semantic-analyzer'
+
+type ProjectWithBullets = GovernableContent['projects'][number] & { bullets?: string[] }
 
 // ─── Test Helpers ────────────────────────────────────
 
@@ -106,7 +109,7 @@ function createOverflowContent(): GovernableContent {
           'Implemented plugin architecture supporting 15+ community extensions',
           'Achieved 98% test coverage with comprehensive integration test suite',
         ],
-      } as any,
+      } as ProjectWithBullets,
       {
         name: 'E-commerce Platform',
         description: 'Full-stack marketplace application',
@@ -115,7 +118,7 @@ function createOverflowContent(): GovernableContent {
           'Developed marketplace platform with 200+ active sellers',
           'Integrated Stripe payment processing handling $50K monthly volume',
         ],
-      } as any,
+      } as ProjectWithBullets,
       {
         name: 'ML Pipeline',
         description: 'Machine learning data processing pipeline',
@@ -124,7 +127,7 @@ function createOverflowContent(): GovernableContent {
           'Built data pipeline processing 1TB+ daily with 99.9% uptime',
           'Automated model training reducing iteration time by 60%',
         ],
-      } as any,
+      } as ProjectWithBullets,
     ],
   }
 }
@@ -222,13 +225,13 @@ function createBarelyOverContent(): GovernableContent {
           'Built real-time collaboration feature supporting 50+ concurrent users',
           'Implemented drag-and-drop interface with optimistic UI updates',
         ],
-      } as any,
+      } as ProjectWithBullets,
       {
         name: 'CLI Tool',
         description: 'Developer productivity command-line tool',
         technologies: ['TypeScript', 'Node.js'],
         bullets: ['Created CLI tool with 500+ weekly downloads from npm registry'],
-      } as any,
+      } as ProjectWithBullets,
     ],
   }
 }
@@ -291,7 +294,7 @@ describe('consolidateRedundantProjects', () => {
           description: 'Internal productivity tool',
           technologies: ['React', 'Node.js'],
           bullets: ['Automated reporting dashboard'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -319,7 +322,7 @@ describe('consolidateRedundantProjects', () => {
           description: 'Blog site',
           technologies: ['React'],
           bullets: ['Built blog'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -349,7 +352,7 @@ describe('consolidateRedundantProjects', () => {
           description: 'Dashboard',
           technologies: ['React', 'TypeScript', 'Tailwind', 'Vite'],
           bullets: ['Built dashboard'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -399,7 +402,7 @@ describe('consolidateRedundantProjects', () => {
           description: 'Extension for platform',
           technologies: ['React', 'Node.js'],
           bullets: ['Extended platform features'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -459,7 +462,7 @@ describe('compressSoftSkills', () => {
       skills: {
         technical: ['TypeScript', 'React'],
         other: ['Leadership'],
-      } as any,
+      } as unknown as SkillsV2,
       projects: [],
     }
 
@@ -505,13 +508,13 @@ describe('pruneLowestScoredEntry', () => {
           description: 'Good project',
           technologies: ['React'],
           bullets: ['Built feature A'],
-        } as any,
+        } as ProjectWithBullets,
         {
           name: 'Low Score Project',
           description: 'Less relevant project',
           technologies: ['Python'],
           bullets: ['Built feature B', 'Built feature C'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -529,7 +532,7 @@ describe('pruneLowestScoredEntry', () => {
     expect(actions[0].step).toBe('C')
     expect(actions[0].action).toContain('Low Score Project')
     // Bullets should be removed but project still exists
-    expect(((content.projects![1] as any).bullets as string[]).length).toBe(0)
+    expect(((content.projects![1] as ProjectWithBullets).bullets ?? []).length).toBe(0)
   })
 
   it('prefers removing projects over experiences on score tie', () => {
@@ -547,7 +550,7 @@ describe('pruneLowestScoredEntry', () => {
           description: 'Side project',
           technologies: ['React'],
           bullets: ['Built something'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -602,7 +605,7 @@ describe('pruneLowestScoredEntry', () => {
           description: 'No score project',
           technologies: ['React'],
           bullets: ['Built something'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -783,8 +786,8 @@ describe('applyFinalVerification', () => {
     // Lead, education, and skills should be untouched
     expect(content.lead).toBe('Professional lead text')
     expect(content.education).toHaveLength(1)
-    expect((content.skills as any).languages).toEqual(['TypeScript', 'Python'])
-    expect((content.skills as any).frameworks).toEqual(['React'])
+    expect((content.skills as SkillsV2).languages).toEqual(['TypeScript', 'Python'])
+    expect((content.skills as SkillsV2).frameworks).toEqual(['React'])
   })
 })
 
@@ -858,7 +861,7 @@ describe('tightenAllBullets', () => {
           description: 'Dev tool',
           technologies: ['TypeScript'],
           bullets: ['Played a key role in designing the plugin system'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -868,7 +871,7 @@ describe('tightenAllBullets', () => {
     expect(actions[0].step).toBe('TIGHTEN')
     expect(content.experience![0].bullets[0]).toBe('Built the new API')
     expect(content.experience![0].bullets[1]).toBe('Managed the deployment pipeline')
-    expect(((content.projects![0] as any).bullets as string[])[0]).toBe(
+    expect(((content.projects![0] as ProjectWithBullets).bullets ?? [])[0]).toBe(
       'Designing the plugin system'
     )
   })
@@ -950,7 +953,7 @@ describe('condenseLowPriorityEntry', () => {
             'Increased test coverage to 95%',
             'Attended weekly meetings',
           ],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -963,7 +966,7 @@ describe('condenseLowPriorityEntry', () => {
 
     expect(actions).toHaveLength(1)
     // Should keep the metric bullet (95%)
-    expect(((content.projects![0] as any).bullets as string[])[0]).toContain('95%')
+    expect(((content.projects![0] as ProjectWithBullets).bullets ?? [])[0]).toContain('95%')
   })
 
   it('prefers condensing projects over experiences on score tie', () => {
@@ -986,7 +989,7 @@ describe('condenseLowPriorityEntry', () => {
           description: 'Test',
           technologies: ['React'],
           bullets: ['Built UI', 'Wrote tests'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -1002,7 +1005,7 @@ describe('condenseLowPriorityEntry', () => {
 
     expect(actions).toHaveLength(1)
     expect(actions[0].action).toContain('Side Project')
-    expect((content.projects![0] as any).bullets as string[]).toHaveLength(1)
+    expect((content.projects![0] as ProjectWithBullets).bullets).toHaveLength(1)
     // Experience at same score should be untouched
     expect(content.experience![1].bullets).toHaveLength(2)
   })
@@ -1019,7 +1022,7 @@ describe('condenseLowPriorityEntry', () => {
           description: 'Test',
           technologies: ['React'],
           bullets: ['Single bullet'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -1081,7 +1084,7 @@ describe('condenseLowPriorityEntry', () => {
           description: 'Test',
           technologies: ['React'],
           bullets: ['Single bullet'],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 
@@ -1353,7 +1356,7 @@ describe('governOnePage', () => {
             'Built real-time dashboard with WebSocket integration',
             'Implemented OAuth 2.0 authentication flow',
           ],
-        } as any,
+        } as ProjectWithBullets,
       ],
     }
 

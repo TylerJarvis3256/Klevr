@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, Prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 // Schema for validating the parsed resume structure
@@ -14,39 +14,47 @@ const parsedResumeSchema = z.object({
     github: z.string().nullable().optional(),
     website: z.string().nullable().optional(),
   }),
-  education: z.array(z.object({
-    school: z.string(),
-    degree: z.string().nullable().optional(),
-    major: z.string().nullable().optional(),
-    graduationDate: z.string().nullable().optional(),
-    gpa: z.string().nullable().optional(),
-  })),
-  experience: z.array(z.object({
-    title: z.string(),
-    company: z.string(),
-    location: z.string().nullable().optional(),
-    startDate: z.string().nullable().optional(),
-    endDate: z.string().nullable().optional(),
-    current: z.boolean(),
-    bullets: z.array(z.string()),
-  })),
-  projects: z.array(z.object({
-    name: z.string(),
-    description: z.string().nullable().optional(),
-    technologies: z.array(z.string()),
-    url: z.string().nullable().optional(),
-  })),
+  education: z.array(
+    z.object({
+      school: z.string(),
+      degree: z.string().nullable().optional(),
+      major: z.string().nullable().optional(),
+      graduationDate: z.string().nullable().optional(),
+      gpa: z.string().nullable().optional(),
+    })
+  ),
+  experience: z.array(
+    z.object({
+      title: z.string(),
+      company: z.string(),
+      location: z.string().nullable().optional(),
+      startDate: z.string().nullable().optional(),
+      endDate: z.string().nullable().optional(),
+      current: z.boolean(),
+      bullets: z.array(z.string()),
+    })
+  ),
+  projects: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string().nullable().optional(),
+      technologies: z.array(z.string()),
+      url: z.string().nullable().optional(),
+    })
+  ),
   skills: z.object({
     languages: z.array(z.string()),
     frameworks: z.array(z.string()),
     tools: z.array(z.string()),
     other: z.array(z.string()),
   }),
-  certifications: z.array(z.object({
-    name: z.string(),
-    issuer: z.string().nullable().optional(),
-    date: z.string().nullable().optional(),
-  })),
+  certifications: z.array(
+    z.object({
+      name: z.string(),
+      issuer: z.string().nullable().optional(),
+      date: z.string().nullable().optional(),
+    })
+  ),
 })
 
 const confirmSchema = z.object({
@@ -81,10 +89,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!currentProfile) {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
     // 4. Extract skills from parsed resume
@@ -117,7 +122,7 @@ export async function POST(req: NextRequest) {
     const profile = await prisma.profile.update({
       where: { user_id: user.id },
       data: {
-        parsed_resume: parsed_resume as any,
+        parsed_resume: parsed_resume as unknown as Prisma.InputJsonValue,
         parsed_resume_confirmed_at: new Date(),
         skills: uniqueSkills,
       },
@@ -165,21 +170,14 @@ export async function POST(req: NextRequest) {
         parsed_resume_confirmed_at: profile.parsed_resume_confirmed_at,
       },
     })
-
   } catch (error) {
     console.error('POST /api/resume/confirm error:', error)
 
     // Check if profile doesn't exist
-    if ((error as any).code === 'P2025') {
-      return NextResponse.json(
-        { error: 'Profile not found' },
-        { status: 404 }
-      )
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    return NextResponse.json(
-      { error: 'Failed to confirm resume' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to confirm resume' }, { status: 500 })
   }
 }

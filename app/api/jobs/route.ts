@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, Prisma } from '@/lib/prisma'
+import { ApplicationStatus, FitBucket } from '@prisma/client'
 import { getCurrentUser } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 
@@ -123,16 +124,16 @@ export async function GET(request: Request) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.ApplicationWhereInput = {
       user_id: user.id,
     }
 
     if (status) {
-      where.status = status
+      where.status = status as ApplicationStatus
     }
 
     if (fitBucket) {
-      where.fit_bucket = fitBucket
+      where.fit_bucket = fitBucket as FitBucket
     }
 
     if (search) {

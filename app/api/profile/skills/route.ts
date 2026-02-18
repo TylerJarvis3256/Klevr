@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, Prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 const skillsSchema = z.object({
@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
 
     // 3. Normalize skills: trim whitespace, remove duplicates (case-insensitive)
     const normalizedSkills = parsed.data.skills
-      .map((skill) => skill.trim())
-      .filter((skill) => skill.length > 0) // Remove empty strings
+      .map(skill => skill.trim())
+      .filter(skill => skill.length > 0) // Remove empty strings
 
     // Remove duplicates using case-insensitive comparison
     const uniqueSkills: string[] = []
@@ -60,16 +60,13 @@ export async function POST(req: NextRequest) {
     console.error('POST /api/profile/skills error:', error)
 
     // Check if profile doesn't exist
-    if ((error as any).code === 'P2025') {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
       return NextResponse.json(
         { error: 'Profile not found. Please complete the basics step first.' },
         { status: 404 }
       )
     }
 
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

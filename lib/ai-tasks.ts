@@ -6,7 +6,7 @@ interface CreateTaskOptions {
   userId: string
   type: AiTaskType
   applicationId?: string
-  data: Record<string, any>
+  data: Record<string, unknown>
 }
 
 /**

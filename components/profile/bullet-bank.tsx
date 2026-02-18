@@ -1,7 +1,7 @@
 'use client'
 
 import { BulletEditor } from './bullet-editor'
-import type { Bullet } from '@prisma/client'
+import type { Bullet } from '@/types/models'
 
 interface BulletBankProps {
   bullets: Bullet[]

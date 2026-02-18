@@ -32,7 +32,9 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
     // Validate file type (only DOCX for now - PDF has technical issues)
     const allowedTypes = ['application/vnd.openxmlformats-officedocument.wordprocessingml.document']
     if (!allowedTypes.includes(file.type)) {
-      setError('Only DOCX files are supported. For PDF resumes, please use the "Paste Text" option.')
+      setError(
+        'Only DOCX files are supported. For PDF resumes, please use the "Paste Text" option.'
+      )
       return
     }
 
@@ -178,7 +180,8 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
           <div className="flex-1">
             <h3 className="font-lora font-semibold text-lg">Resume Parsed Successfully</h3>
             <p className="text-sm text-secondary/70 mt-1">
-              Review the extracted information below. Click "Confirm & Update" to save.
+              Review the extracted information below. Click &quot;Confirm &amp; Update&quot; to
+              save.
             </p>
           </div>
         </div>
@@ -188,24 +191,30 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
             <span className="font-medium">Name:</span> {parsedResume.personal?.name || 'Not found'}
           </div>
           <div>
-            <span className="font-medium">Email:</span> {parsedResume.personal?.email || 'Not found'}
+            <span className="font-medium">Email:</span>{' '}
+            {parsedResume.personal?.email || 'Not found'}
           </div>
           <div>
-            <span className="font-medium">Education:</span> {parsedResume.education?.length || 0} entries
+            <span className="font-medium">Education:</span> {parsedResume.education?.length || 0}{' '}
+            entries
           </div>
           <div>
-            <span className="font-medium">Experience:</span> {parsedResume.experience?.length || 0} positions
+            <span className="font-medium">Experience:</span> {parsedResume.experience?.length || 0}{' '}
+            positions
           </div>
           <div>
-            <span className="font-medium">Projects:</span> {parsedResume.projects?.length || 0} projects
+            <span className="font-medium">Projects:</span> {parsedResume.projects?.length || 0}{' '}
+            projects
           </div>
           <div>
             <span className="font-medium">Skills:</span>{' '}
-            {[
-              ...(parsedResume.skills?.languages || []),
-              ...(parsedResume.skills?.frameworks || []),
-              ...(parsedResume.skills?.tools || []),
-            ].length}{' '}
+            {
+              [
+                ...(parsedResume.skills?.languages || []),
+                ...(parsedResume.skills?.frameworks || []),
+                ...(parsedResume.skills?.tools || []),
+              ].length
+            }{' '}
             skills
           </div>
         </div>
@@ -237,7 +246,8 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
         </div>
 
         <p className="text-xs text-secondary/60 mt-3">
-          Note: This will update your Education, Experience, Projects, and Skills sections with the parsed data.
+          Note: This will update your Education, Experience, Projects, and Skills sections with the
+          parsed data.
         </p>
       </div>
     )
@@ -257,7 +267,11 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
           <Upload className="h-4 w-4 mr-2" />
           Upload File
         </Button>
-        <Button variant={method === 'paste' ? 'default' : 'outline'} onClick={() => setMethod('paste')} size="sm">
+        <Button
+          variant={method === 'paste' ? 'default' : 'outline'}
+          onClick={() => setMethod('paste')}
+          size="sm"
+        >
           <FileText className="h-4 w-4 mr-2" />
           Paste Text
         </Button>
@@ -281,7 +295,7 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
               className="block w-full text-sm text-secondary/70 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-teal/10 file:text-accent-teal hover:file:bg-accent-teal/20"
             />
             <p className="text-xs text-secondary/60 mt-2">
-              For PDF resumes, use "Paste Text" option below
+              For PDF resumes, use &quot;Paste Text&quot; option below
             </p>
           </div>
 
@@ -289,7 +303,8 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
             <div className="bg-primary/30 rounded-lg p-3 text-sm">
               <p className="font-medium">{selectedFile.name}</p>
               <p className="text-secondary/60 text-xs mt-1">
-                {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.type.split('/')[1].toUpperCase()}
+                {(selectedFile.size / 1024).toFixed(1)} KB •{' '}
+                {selectedFile.type.split('/')[1].toUpperCase()}
               </p>
             </div>
           )}
@@ -315,7 +330,7 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
             <label className="block text-sm font-medium mb-2">Paste Resume Text</label>
             <textarea
               value={pastedText}
-              onChange={(e) => setPastedText(e.target.value)}
+              onChange={e => setPastedText(e.target.value)}
               rows={10}
               className="w-full px-3 py-2 border border-secondary/20 rounded-lg text-sm"
               placeholder="Paste your resume text here..."
@@ -340,8 +355,8 @@ export function ResumeUpdater({ onResumeUpdated }: ResumeUpdaterProps) {
       )}
 
       <p className="text-xs text-secondary/60 mt-4">
-        Updating your resume will re-parse your experience, education, projects, and skills. Your manually added data
-        will be replaced with the parsed information.
+        Updating your resume will re-parse your experience, education, projects, and skills. Your
+        manually added data will be replaced with the parsed information.
       </p>
     </div>
   )

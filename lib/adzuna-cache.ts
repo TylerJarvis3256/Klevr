@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { Prisma } from '@prisma/client'
 import { prisma } from './prisma'
 import { AdzunaSearchParams, AdzunaSearchResponse } from './adzuna'
 
@@ -23,7 +24,7 @@ const CACHE_TTL = {
 export function generateCacheKey(params: AdzunaSearchParams): string {
   // Sort keys for stable stringification
   const sortedKeys = Object.keys(params).sort()
-  const normalized: Record<string, any> = {}
+  const normalized: Record<string, string | number> = {}
 
   sortedKeys.forEach(key => {
     const value = params[key as keyof AdzunaSearchParams]
@@ -90,11 +91,11 @@ export async function setCachedSearchResults(
       where: { cache_key: cacheKey },
       create: {
         cache_key: cacheKey,
-        results: results as any, // Prisma Json type
+        results: results as unknown as Prisma.InputJsonValue,
         expires_at: expiresAt,
       },
       update: {
-        results: results as any,
+        results: results as unknown as Prisma.InputJsonValue,
         expires_at: expiresAt,
       },
     })
@@ -137,7 +138,7 @@ export async function cleanupExpiredCache(): Promise<number> {
       },
     })
 
-    console.log(`[Cache] Cleaned up ${result.count} expired cache entries`)
+    console.warn(`[Cache] Cleaned up ${result.count} expired cache entries`)
     return result.count
   } catch (error) {
     console.error('[Cache] Error cleaning up expired cache:', error)

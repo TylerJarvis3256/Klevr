@@ -54,7 +54,7 @@ export async function enhanceBullet(
     originalText: request.bulletText,
     enhancedText: sanitizeEmDashes(result.enhancedText),
     suggestedTags: result.suggestedTags,
-    suggestedCategory: result.suggestedCategory as any,
+    suggestedCategory: result.suggestedCategory as BulletEnhanceResponse['suggestedCategory'],
     suggestedPriority: result.suggestedPriority,
     metrics: result.metrics,
   }

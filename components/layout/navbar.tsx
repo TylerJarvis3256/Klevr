@@ -18,8 +18,13 @@ interface NavbarProps {
   onMenuClick?: () => void
 }
 
+interface NavbarProfile {
+  full_name?: string
+  school?: string
+}
+
 export function Navbar({ onMenuClick }: NavbarProps) {
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<NavbarProfile | null>(null)
 
   useEffect(() => {
     async function loadProfile() {
@@ -36,11 +41,12 @@ export function Navbar({ onMenuClick }: NavbarProps) {
     loadProfile()
   }, [])
 
-  const initials = profile?.full_name
-    ?.split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase() || 'U'
+  const initials =
+    profile?.full_name
+      ?.split(' ')
+      .map((n: string) => n[0])
+      .join('')
+      .toUpperCase() || 'U'
 
   return (
     <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-secondary/10 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
@@ -83,9 +89,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
             <DropdownMenuContent className="w-56" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {profile?.full_name || 'User'}
-                  </p>
+                  <p className="text-sm font-medium leading-none">{profile?.full_name || 'User'}</p>
                   <p className="text-xs leading-none text-muted-foreground">
                     {profile?.school || 'Student'}
                   </p>

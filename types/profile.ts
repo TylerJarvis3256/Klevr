@@ -1,6 +1,7 @@
 // Profile-related types for Klevr
 
-import type { Education, JobExperience, Bullet, Profile, Project } from '@prisma/client'
+import type { Profile, Project } from '@prisma/client'
+import type { Education, JobExperience, Bullet } from '@/types/models'
 
 // ===== Education Types =====
 

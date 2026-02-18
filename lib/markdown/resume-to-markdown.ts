@@ -1,6 +1,13 @@
 import type { GeneratedResumeContent } from '@/lib/resume-generator'
 import { isSkillsV2 } from '@/lib/resume-generator'
 
+interface V3Project {
+  name: string
+  description: string
+  technologies: string[]
+  bullets?: string[]
+}
+
 export interface MarkdownUserInfo {
   name: string
   email: string
@@ -21,8 +28,8 @@ export interface MarkdownOptions {
 
 function renderSummary(content: GeneratedResumeContent & { lead?: string }, lines: string[]): void {
   // Professional lead (V3): plain text, no heading
-  if ((content as any).lead) {
-    lines.push((content as any).lead)
+  if (content.lead) {
+    lines.push(content.lead)
     lines.push('')
     return
   }
@@ -80,7 +87,7 @@ function renderProjects(content: GeneratedResumeContent, lines: string[]): void 
       lines.push(`- Technologies: ${project.technologies.join(', ')}`)
     }
     // V3 projects may have bullets
-    const projWithBullets = project as any
+    const projWithBullets = project as V3Project
     if (projWithBullets.bullets && Array.isArray(projWithBullets.bullets)) {
       for (const bullet of projWithBullets.bullets) {
         lines.push(`- ${bullet}`)

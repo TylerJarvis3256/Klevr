@@ -72,8 +72,9 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ taskId })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Job scoring error:', error)
-    return NextResponse.json({ error: error.message }, { status: 400 })
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ error: message }, { status: 400 })
   }
 }

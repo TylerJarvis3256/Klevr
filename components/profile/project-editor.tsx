@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Plus, Trash2, ExternalLink, Github } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BulletEditor } from './bullet-editor'
-import type { Project, Bullet } from '@prisma/client'
+import type { Project } from '@prisma/client'
+import type { Bullet } from '@/types/models'
 
 type ProjectWithBullets = Project & { Bullets: Bullet[] }
 
@@ -71,7 +72,7 @@ export function ProjectEditor({
     if (!trimmed) return
 
     const isDuplicate = formData.technologies.some(
-      (tech) => tech.toLowerCase() === trimmed.toLowerCase()
+      tech => tech.toLowerCase() === trimmed.toLowerCase()
     )
 
     if (!isDuplicate) {
@@ -83,7 +84,7 @@ export function ProjectEditor({
   const handleRemoveTech = (tech: string) => {
     setFormData({
       ...formData,
-      technologies: formData.technologies.filter((t) => t !== tech),
+      technologies: formData.technologies.filter(t => t !== tech),
     })
   }
 
@@ -119,7 +120,7 @@ export function ProjectEditor({
     if (!trimmed) return
 
     const isDuplicate = editFormData.technologies.some(
-      (tech) => tech.toLowerCase() === trimmed.toLowerCase()
+      tech => tech.toLowerCase() === trimmed.toLowerCase()
     )
 
     if (!isDuplicate) {
@@ -131,7 +132,7 @@ export function ProjectEditor({
   const handleRemoveEditTech = (tech: string) => {
     setEditFormData({
       ...editFormData,
-      technologies: editFormData.technologies.filter((t) => t !== tech),
+      technologies: editFormData.technologies.filter(t => t !== tech),
     })
   }
 
@@ -144,7 +145,7 @@ export function ProjectEditor({
 
   return (
     <div className="space-y-4">
-      {projects.map((proj) => (
+      {projects.map(proj => (
         <div key={proj.id} className="border border-secondary/20 rounded-2xl p-6 bg-white">
           {editingId === proj.id ? (
             <form onSubmit={handleEditSubmit}>
@@ -156,7 +157,7 @@ export function ProjectEditor({
                     type="text"
                     required
                     value={editFormData.name}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    onChange={e => setEditFormData({ ...editFormData, name: e.target.value })}
                     className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                   />
                 </div>
@@ -164,7 +165,9 @@ export function ProjectEditor({
                   <label className="block text-sm font-medium mb-1">Description</label>
                   <textarea
                     value={editFormData.description}
-                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    onChange={e =>
+                      setEditFormData({ ...editFormData, description: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                     rows={3}
                   />
@@ -175,7 +178,7 @@ export function ProjectEditor({
                     <input
                       type="text"
                       value={editTechInput}
-                      onChange={(e) => setEditTechInput(e.target.value)}
+                      onChange={e => setEditTechInput(e.target.value)}
                       onKeyDown={handleEditTechKeyDown}
                       className="flex-1 px-3 py-2 border border-secondary/20 rounded-lg text-sm"
                       placeholder="e.g., React, Node.js"
@@ -191,7 +194,7 @@ export function ProjectEditor({
                   </div>
                   {editFormData.technologies.length > 0 && (
                     <div className="flex flex-wrap gap-2">
-                      {editFormData.technologies.map((tech) => (
+                      {editFormData.technologies.map(tech => (
                         <span
                           key={tech}
                           className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-primary text-secondary rounded-full"
@@ -214,7 +217,7 @@ export function ProjectEditor({
                   <input
                     type="text"
                     value={editFormData.date_range}
-                    onChange={(e) => setEditFormData({ ...editFormData, date_range: e.target.value })}
+                    onChange={e => setEditFormData({ ...editFormData, date_range: e.target.value })}
                     className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                     placeholder="e.g., Jan 2023 - May 2023"
                   />
@@ -225,7 +228,7 @@ export function ProjectEditor({
                     <input
                       type="url"
                       value={editFormData.url}
-                      onChange={(e) => setEditFormData({ ...editFormData, url: e.target.value })}
+                      onChange={e => setEditFormData({ ...editFormData, url: e.target.value })}
                       className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                       placeholder="https://example.com"
                     />
@@ -235,7 +238,9 @@ export function ProjectEditor({
                     <input
                       type="url"
                       value={editFormData.github_link}
-                      onChange={(e) => setEditFormData({ ...editFormData, github_link: e.target.value })}
+                      onChange={e =>
+                        setEditFormData({ ...editFormData, github_link: e.target.value })
+                      }
                       className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                       placeholder="https://github.com/..."
                     />
@@ -255,103 +260,111 @@ export function ProjectEditor({
             <>
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-              <h3 className="font-lora font-semibold text-lg">{proj.name}</h3>
-              {proj.date_range && (
-                <p className="text-secondary/60 text-sm mt-1">{proj.date_range}</p>
-              )}
-              {proj.description && (
-                <p className="text-secondary/80 text-sm mt-2 leading-relaxed">
-                  {proj.description}
-                </p>
-              )}
-              {proj.technologies && proj.technologies.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {proj.technologies.map((tech) => (
-                    <span
-                      key={tech}
-                      className="text-xs px-3 py-1 bg-accent-teal/10 text-accent-teal rounded-full border border-accent-teal/20"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {(proj.url || proj.github_link) && (
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-secondary/10">
-                  {proj.url && (
-                    <a
-                      href={proj.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-accent-teal hover:text-accent-teal/80 inline-flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      Live Demo
-                    </a>
+                  <h3 className="font-lora font-semibold text-lg">{proj.name}</h3>
+                  {proj.date_range && (
+                    <p className="text-secondary/60 text-sm mt-1">{proj.date_range}</p>
                   )}
-                  {proj.github_link && (
-                    <a
-                      href={proj.github_link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-accent-teal hover:text-accent-teal/80 inline-flex items-center gap-1"
-                    >
-                      <Github className="h-3 w-3" />
-                      GitHub
-                    </a>
+                  {proj.description && (
+                    <p className="text-secondary/80 text-sm mt-2 leading-relaxed">
+                      {proj.description}
+                    </p>
+                  )}
+                  {proj.technologies && proj.technologies.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3">
+                      {proj.technologies.map(tech => (
+                        <span
+                          key={tech}
+                          className="text-xs px-3 py-1 bg-accent-teal/10 text-accent-teal rounded-full border border-accent-teal/20"
+                        >
+                          {tech}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {(proj.url || proj.github_link) && (
+                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-secondary/10">
+                      {proj.url && (
+                        <a
+                          href={proj.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-accent-teal hover:text-accent-teal/80 inline-flex items-center gap-1"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Live Demo
+                        </a>
+                      )}
+                      {proj.github_link && (
+                        <a
+                          href={proj.github_link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-accent-teal hover:text-accent-teal/80 inline-flex items-center gap-1"
+                        >
+                          <Github className="h-3 w-3" />
+                          GitHub
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {editingId !== proj.id && (
-                <>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => startEditing(proj)}
-                    className="text-accent-teal"
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
-                  >
-                    {expandedId === proj.id ? 'Collapse' : 'Expand'}
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onDelete(proj.id)} className="text-red-600">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-            </div>
-          </div>
+                <div className="flex gap-2">
+                  {editingId !== proj.id && (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => startEditing(proj)}
+                        className="text-accent-teal"
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
+                      >
+                        {expandedId === proj.id ? 'Collapse' : 'Expand'}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onDelete(proj.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
 
-          {expandedId === proj.id && editingId !== proj.id && (
-            <div className="mt-4 pt-4 border-t border-secondary/10">
-              <h4 className="font-medium mb-2">Key Bullet Points</h4>
-              <p className="text-xs text-secondary/60 mb-3">
-                Highlight your key accomplishments and technical achievements for this project
-              </p>
-              <BulletEditor
-                bullets={proj.Bullets}
-                onAdd={(data) => onAddBullet(proj.id, data)}
-                onUpdate={onUpdateBullet}
-                onDelete={onDeleteBullet}
-                contextType="project"
-                contextId={proj.id}
-              />
-            </div>
-          )}
-          </>
+              {expandedId === proj.id && editingId !== proj.id && (
+                <div className="mt-4 pt-4 border-t border-secondary/10">
+                  <h4 className="font-medium mb-2">Key Bullet Points</h4>
+                  <p className="text-xs text-secondary/60 mb-3">
+                    Highlight your key accomplishments and technical achievements for this project
+                  </p>
+                  <BulletEditor
+                    bullets={proj.Bullets}
+                    onAdd={data => onAddBullet(proj.id, data)}
+                    onUpdate={onUpdateBullet}
+                    onDelete={onDeleteBullet}
+                    contextType="project"
+                    contextId={proj.id}
+                  />
+                </div>
+              )}
+            </>
           )}
         </div>
       ))}
 
       {isAdding ? (
-        <form onSubmit={handleSubmit} className="border border-accent-orange/30 rounded-2xl p-6 bg-white">
+        <form
+          onSubmit={handleSubmit}
+          className="border border-accent-orange/30 rounded-2xl p-6 bg-white"
+        >
           <h4 className="font-lora font-semibold mb-4">Add Project</h4>
           <div className="space-y-4">
             <div>
@@ -360,7 +373,7 @@ export function ProjectEditor({
                 type="text"
                 required
                 value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                 placeholder="e.g., E-Commerce Platform"
               />
@@ -369,7 +382,7 @@ export function ProjectEditor({
               <label className="block text-sm font-medium mb-1">Description</label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                 rows={3}
                 placeholder="Describe what you built and its impact..."
@@ -381,7 +394,7 @@ export function ProjectEditor({
                 <input
                   type="text"
                   value={techInput}
-                  onChange={(e) => setTechInput(e.target.value)}
+                  onChange={e => setTechInput(e.target.value)}
                   onKeyDown={handleTechKeyDown}
                   className="flex-1 px-3 py-2 border border-secondary/20 rounded-lg text-sm"
                   placeholder="e.g., React, Node.js"
@@ -397,7 +410,7 @@ export function ProjectEditor({
               </div>
               {formData.technologies.length > 0 && (
                 <div className="flex flex-wrap gap-2">
-                  {formData.technologies.map((tech) => (
+                  {formData.technologies.map(tech => (
                     <span
                       key={tech}
                       className="inline-flex items-center gap-1 text-xs px-3 py-1 bg-primary text-secondary rounded-full"
@@ -420,7 +433,7 @@ export function ProjectEditor({
               <input
                 type="text"
                 value={formData.date_range}
-                onChange={(e) => setFormData({ ...formData, date_range: e.target.value })}
+                onChange={e => setFormData({ ...formData, date_range: e.target.value })}
                 className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                 placeholder="e.g., Jan 2023 - May 2023"
               />
@@ -431,7 +444,7 @@ export function ProjectEditor({
                 <input
                   type="url"
                   value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                  onChange={e => setFormData({ ...formData, url: e.target.value })}
                   className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                   placeholder="https://example.com"
                 />
@@ -441,7 +454,7 @@ export function ProjectEditor({
                 <input
                   type="url"
                   value={formData.github_link}
-                  onChange={(e) => setFormData({ ...formData, github_link: e.target.value })}
+                  onChange={e => setFormData({ ...formData, github_link: e.target.value })}
                   className="w-full px-3 py-2 border border-secondary/20 rounded-lg"
                   placeholder="https://github.com/..."
                 />
@@ -458,7 +471,11 @@ export function ProjectEditor({
           </div>
         </form>
       ) : (
-        <Button onClick={() => setIsAdding(true)} variant="outline" className="w-full border-dashed border-2">
+        <Button
+          onClick={() => setIsAdding(true)}
+          variant="outline"
+          className="w-full border-dashed border-2"
+        >
           <Plus className="h-4 w-4 mr-2" />
           Add Project
         </Button>

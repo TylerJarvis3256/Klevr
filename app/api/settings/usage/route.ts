@@ -32,13 +32,16 @@ export async function GET() {
         coverLetters: {
           current: usage.cover_letter_count,
           limit: USAGE_LIMITS.COVER_LETTER_GENERATION,
-          percentage: getUsagePercentage(usage.cover_letter_count, USAGE_LIMITS.COVER_LETTER_GENERATION),
+          percentage: getUsagePercentage(
+            usage.cover_letter_count,
+            USAGE_LIMITS.COVER_LETTER_GENERATION
+          ),
         },
       },
       month: currentMonth,
       resetDate: nextMonth.toISOString(),
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('GET /api/settings/usage error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

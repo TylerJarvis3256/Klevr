@@ -1,11 +1,11 @@
 import { prisma } from './prisma'
-import { ActivityType } from '@prisma/client'
+import { ActivityType, Prisma } from '@prisma/client'
 
 export interface LogActivityParams {
   user_id: string
   application_id?: string
   type: ActivityType
-  metadata?: Record<string, any>
+  metadata?: Prisma.InputJsonValue
 }
 
 /**
@@ -100,7 +100,7 @@ export async function logAiTaskComplete(
     | 'COVER_LETTER_GENERATED'
     | 'COMPANY_RESEARCH_COMPLETED'
   >,
-  metadata?: Record<string, any>
+  metadata?: Prisma.InputJsonValue
 ): Promise<boolean> {
   return logActivity({
     user_id,

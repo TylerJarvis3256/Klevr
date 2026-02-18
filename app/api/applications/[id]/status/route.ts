@@ -8,10 +8,7 @@ const updateStatusSchema = z.object({
   status: z.enum(['PLANNED', 'APPLIED', 'INTERVIEW', 'OFFER', 'REJECTED']),
 })
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -40,7 +37,7 @@ export async function PATCH(
     const oldStatus = currentApplication.status
 
     // Set applied_at timestamp when moving to APPLIED status
-    const updateData: any = { status: newStatus }
+    const updateData: { status: typeof newStatus; applied_at?: Date } = { status: newStatus }
     if (newStatus === 'APPLIED') {
       updateData.applied_at = new Date()
     }

@@ -13,13 +13,40 @@ import {
 import { ApplicationStatus, FitBucket } from '@prisma/client'
 import { useEffect, useState } from 'react'
 
+function getSavedFilters(): {
+  searchQuery: string
+  fitFilter: string
+  statusFilter: string
+} | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const saved = localStorage.getItem('dashboard-filters')
+    if (saved) return JSON.parse(saved)
+  } catch {
+    // ignore malformed localStorage
+  }
+  return null
+}
+
 export function FilterBar() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
-  const [fitFilter, setFitFilter] = useState(searchParams.get('fit') || 'ALL')
-  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'ALL')
+  const [searchQuery, setSearchQuery] = useState(() => {
+    const fromUrl = searchParams.get('search')
+    if (fromUrl) return fromUrl
+    return getSavedFilters()?.searchQuery || ''
+  })
+  const [fitFilter, setFitFilter] = useState(() => {
+    const fromUrl = searchParams.get('fit')
+    if (fromUrl) return fromUrl
+    return getSavedFilters()?.fitFilter || 'ALL'
+  })
+  const [statusFilter, setStatusFilter] = useState(() => {
+    const fromUrl = searchParams.get('status')
+    if (fromUrl) return fromUrl
+    return getSavedFilters()?.statusFilter || 'ALL'
+  })
 
   // Update URL when filters change
   useEffect(() => {
@@ -35,23 +62,11 @@ export function FilterBar() {
     router.push(newUrl, { scroll: false })
 
     // Persist to localStorage
-    localStorage.setItem('dashboard-filters', JSON.stringify({ searchQuery, fitFilter, statusFilter }))
+    localStorage.setItem(
+      'dashboard-filters',
+      JSON.stringify({ searchQuery, fitFilter, statusFilter })
+    )
   }, [searchQuery, fitFilter, statusFilter, router])
-
-  // Restore filters from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('dashboard-filters')
-      if (saved && !searchParams.toString()) {
-        const { searchQuery: savedSearch, fitFilter: savedFit, statusFilter: savedStatus } = JSON.parse(saved)
-        if (savedSearch) setSearchQuery(savedSearch)
-        if (savedFit) setFitFilter(savedFit)
-        if (savedStatus) setStatusFilter(savedStatus)
-      }
-    } catch (error) {
-      console.error('Failed to restore filters:', error)
-    }
-  }, [])
 
   return (
     <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-6 mb-6">

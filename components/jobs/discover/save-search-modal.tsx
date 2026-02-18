@@ -196,14 +196,8 @@ export function SaveSearchModal({ open, onClose, searchParams }: SaveSearchModal
 
           <div className="space-y-2">
             <Label htmlFor="name">Search Name *</Label>
-            <Input
-              id="name"
-              placeholder="e.g., Senior Developer in Boston"
-              {...register('name')}
-            />
-            {errors.name && (
-              <p className="text-sm text-red-500">{errors.name.message}</p>
-            )}
+            <Input id="name" placeholder="e.g., Senior Developer in Boston" {...register('name')} />
+            {errors.name && <p className="text-sm text-red-500">{errors.name.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -211,7 +205,9 @@ export function SaveSearchModal({ open, onClose, searchParams }: SaveSearchModal
               <Label htmlFor="frequency">Frequency *</Label>
               <Select
                 value={watch('frequency')}
-                onValueChange={value => setValue('frequency', value as any)}
+                onValueChange={value =>
+                  setValue('frequency', value as 'DAILY' | 'WEEKLY' | 'MONTHLY')
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -322,10 +318,7 @@ export function SaveSearchModal({ open, onClose, searchParams }: SaveSearchModal
             <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || (isAtMax && !selectedSearchToReplace)}
-            >
+            <Button type="submit" disabled={isLoading || (isAtMax && !selectedSearchToReplace)}>
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isAtMax ? 'Replace & Save' : 'Save Search'}
             </Button>

@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       success: true,
       message: 'Account deleted successfully',
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('POST /api/settings/delete-account error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -6,7 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { OnboardingStepper } from '@/components/onboarding/stepper'
 import { toast } from 'sonner'
 
@@ -45,7 +52,7 @@ export default function OnboardingBasicsPage() {
       }
 
       router.push('/onboarding/preferences')
-    } catch (error) {
+    } catch {
       toast.error('Failed to save your information. Please try again.')
     }
   }
@@ -61,73 +68,75 @@ export default function OnboardingBasicsPage() {
         <OnboardingStepper currentStep={1} totalSteps={4} />
 
         <div className="mt-8 bg-white/95 backdrop-blur-sm rounded-2xl shadow-card border border-secondary/10 p-8 md:p-10">
-          <h1 className="font-lora text-3xl font-bold mb-2 text-secondary">Let's start with the basics</h1>
+          <h1 className="font-lora text-3xl font-bold mb-2 text-secondary">
+            Let&apos;s start with the basics
+          </h1>
           <p className="text-base text-secondary/80 mb-8">
             Tell us a bit about yourself so we can personalize your experience.
           </p>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="full_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Jane Doe" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="full_name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Jane Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="school"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>School / University</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Stanford University" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="school"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>School / University</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Stanford University" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="major"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Major / Field of Study</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Computer Science" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="major"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Major / Field of Study</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Computer Science" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="graduation_year"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Expected Graduation Year</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      placeholder="2025"
-                      {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="graduation_year"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expected Graduation Year</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="2025"
+                        {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value, 10) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="flex justify-end gap-4 pt-4">
                 <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>

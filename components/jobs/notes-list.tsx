@@ -47,8 +47,8 @@ export function NotesList({ notes, applicationId }: NotesListProps) {
       toast.success('Note created')
       setNewNoteContent('')
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setIsCreating(false)
     }
@@ -86,8 +86,8 @@ export function NotesList({ notes, applicationId }: NotesListProps) {
       setEditingId(null)
       setEditContent('')
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     }
   }
 
@@ -109,8 +109,8 @@ export function NotesList({ notes, applicationId }: NotesListProps) {
 
       toast.success('Note deleted')
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setDeletingId(null)
     }
@@ -131,11 +131,7 @@ export function NotesList({ notes, applicationId }: NotesListProps) {
           rows={3}
           className="mb-3"
         />
-        <Button
-          onClick={handleCreate}
-          disabled={isCreating || !newNoteContent.trim()}
-          size="sm"
-        >
+        <Button onClick={handleCreate} disabled={isCreating || !newNoteContent.trim()} size="sm">
           {isCreating ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -177,19 +173,11 @@ export function NotesList({ notes, applicationId }: NotesListProps) {
                     autoFocus
                   />
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => handleSaveEdit(note.id)}
-                      size="sm"
-                      variant="default"
-                    >
+                    <Button onClick={() => handleSaveEdit(note.id)} size="sm" variant="default">
                       <Save className="h-4 w-4 mr-2" />
                       Save
                     </Button>
-                    <Button
-                      onClick={handleCancelEdit}
-                      size="sm"
-                      variant="outline"
-                    >
+                    <Button onClick={handleCancelEdit} size="sm" variant="outline">
                       <X className="h-4 w-4 mr-2" />
                       Cancel
                     </Button>
@@ -199,9 +187,7 @@ export function NotesList({ notes, applicationId }: NotesListProps) {
                 // View mode
                 <>
                   <div className="flex items-start justify-between gap-4">
-                    <p className="text-secondary/80 whitespace-pre-wrap flex-1">
-                      {note.content}
-                    </p>
+                    <p className="text-secondary/80 whitespace-pre-wrap flex-1">{note.content}</p>
                     <div className="flex gap-1 flex-shrink-0">
                       <Button
                         onClick={() => handleStartEdit(note)}

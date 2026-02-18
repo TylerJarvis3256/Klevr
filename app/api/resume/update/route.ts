@@ -167,42 +167,36 @@ export async function PUT(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { parsedResume, shouldMigrate = true } = body
+    const { parsedResume } = body
 
     if (!parsedResume) {
       return NextResponse.json({ error: 'parsedResume required' }, { status: 400 })
     }
 
-    // Merge new resume data with existing data (ADDITIVE)
-    if (shouldMigrate) {
-      const { mergeStructuredDataFromParsedResume } = await import('@/lib/migrate-user-profile')
-      await mergeStructuredDataFromParsedResume(user.id, parsedResume)
-    } else {
-      // If not migrating, just update parsed_resume and skills
-      const profile = await prisma.profile.findUnique({
-        where: { user_id: user.id },
-        select: { skills: true },
-      })
+    // Update parsed_resume and merge skills
+    const profile = await prisma.profile.findUnique({
+      where: { user_id: user.id },
+      select: { skills: true },
+    })
 
-      const existingSkills = profile?.skills || []
-      const newSkills = [
-        ...(parsedResume.skills?.languages || []),
-        ...(parsedResume.skills?.frameworks || []),
-        ...(parsedResume.skills?.tools || []),
-        ...(parsedResume.skills?.other || []),
-      ]
+    const existingSkills = profile?.skills || []
+    const newSkills = [
+      ...(parsedResume.skills?.languages || []),
+      ...(parsedResume.skills?.frameworks || []),
+      ...(parsedResume.skills?.tools || []),
+      ...(parsedResume.skills?.other || []),
+    ]
 
-      const mergedSkills = [...new Set([...existingSkills, ...newSkills])].sort()
+    const mergedSkills = [...new Set([...existingSkills, ...newSkills])].sort()
 
-      await prisma.profile.update({
-        where: { user_id: user.id },
-        data: {
-          parsed_resume: parsedResume,
-          parsed_resume_confirmed_at: new Date(),
-          skills: mergedSkills,
-        },
-      })
-    }
+    await prisma.profile.update({
+      where: { user_id: user.id },
+      data: {
+        parsed_resume: parsedResume,
+        parsed_resume_confirmed_at: new Date(),
+        skills: mergedSkills,
+      },
+    })
 
     return NextResponse.json({
       success: true,

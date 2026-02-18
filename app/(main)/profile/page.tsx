@@ -6,7 +6,14 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
 import { MultiSelect } from '@/components/ui/multi-select'
 import { LocationInput } from '@/components/forms/location-input'
 import { SkillsInput } from '@/components/forms/skills-input'
@@ -17,7 +24,8 @@ import { ResumeList } from '@/components/profile/resume-list'
 import { ResumeUploader } from '@/components/profile/resume-uploader'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import type { Education, JobExperience, Bullet, Project } from '@prisma/client'
+import type { Project } from '@prisma/client'
+import type { Education, JobExperience, Bullet } from '@/types/models'
 
 type ExperienceWithBullets = JobExperience & { Bullets: Bullet[] }
 type ProjectWithBullets = Project & { Bullets: Bullet[] }
@@ -75,50 +83,50 @@ export default function ProfilePage() {
 
   // Load profile data function (extracted for reuse)
   async function loadProfile() {
-      try {
-        const res = await fetch('/api/profile')
-        if (!res.ok) {
-          throw new Error('Failed to load profile')
-        }
-
-        const data = await res.json()
-        if (data.profile) {
-          form.reset({
-            full_name: data.profile.full_name || '',
-            school: data.profile.school || '',
-            major: data.profile.major || '',
-            graduation_year: data.profile.graduation_year || new Date().getFullYear() + 1,
-            job_types: data.profile.job_types || [],
-            preferred_locations: data.profile.preferred_locations || [],
-            skills: data.profile.skills || [],
-          })
-        }
-
-        // Load education
-        const educationRes = await fetch('/api/profile/education')
-        if (educationRes.ok) {
-          const educationData = await educationRes.json()
-          setEducation(educationData.education || [])
-        }
-
-        // Load experiences (with bullets)
-        const experiencesRes = await fetch('/api/profile/experiences')
-        if (experiencesRes.ok) {
-          const experiencesData = await experiencesRes.json()
-          setExperiences(experiencesData.experiences || [])
-        }
-
-        // Load projects (with bullets)
-        const projectsRes = await fetch('/api/profile/projects')
-        if (projectsRes.ok) {
-          const projectsData = await projectsRes.json()
-          setProjects(projectsData.projects || [])
-        }
-      } catch (error) {
-        toast.error('Failed to load profile')
-      } finally {
-        setIsLoading(false)
+    try {
+      const res = await fetch('/api/profile')
+      if (!res.ok) {
+        throw new Error('Failed to load profile')
       }
+
+      const data = await res.json()
+      if (data.profile) {
+        form.reset({
+          full_name: data.profile.full_name || '',
+          school: data.profile.school || '',
+          major: data.profile.major || '',
+          graduation_year: data.profile.graduation_year || new Date().getFullYear() + 1,
+          job_types: data.profile.job_types || [],
+          preferred_locations: data.profile.preferred_locations || [],
+          skills: data.profile.skills || [],
+        })
+      }
+
+      // Load education
+      const educationRes = await fetch('/api/profile/education')
+      if (educationRes.ok) {
+        const educationData = await educationRes.json()
+        setEducation(educationData.education || [])
+      }
+
+      // Load experiences (with bullets)
+      const experiencesRes = await fetch('/api/profile/experiences')
+      if (experiencesRes.ok) {
+        const experiencesData = await experiencesRes.json()
+        setExperiences(experiencesData.experiences || [])
+      }
+
+      // Load projects (with bullets)
+      const projectsRes = await fetch('/api/profile/projects')
+      if (projectsRes.ok) {
+        const projectsData = await projectsRes.json()
+        setProjects(projectsData.projects || [])
+      }
+    } catch {
+      toast.error('Failed to load profile')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   useEffect(() => {
@@ -145,7 +153,7 @@ export default function ProfilePage() {
       }
 
       toast.success('Profile updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update profile')
     }
   }
@@ -166,7 +174,7 @@ export default function ProfilePage() {
       }
 
       toast.success('Preferences updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update preferences')
     }
   }
@@ -186,7 +194,7 @@ export default function ProfilePage() {
       }
 
       toast.success('Skills updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update skills')
     }
   }
@@ -205,7 +213,7 @@ export default function ProfilePage() {
       const { project: newProject } = await res.json()
       setProjects([...projects, { ...newProject, Bullets: [] }])
       toast.success('Project added successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to add project')
     }
   }
@@ -228,7 +236,7 @@ export default function ProfilePage() {
       }
 
       toast.success('Project updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update project')
     }
   }
@@ -241,9 +249,9 @@ export default function ProfilePage() {
 
       if (!res.ok) throw new Error('Failed to delete project')
 
-      setProjects(projects.filter((p) => p.id !== id))
+      setProjects(projects.filter(p => p.id !== id))
       toast.success('Project deleted successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete project')
     }
   }
@@ -261,14 +269,12 @@ export default function ProfilePage() {
 
       const { bullet: newBullet } = await res.json()
       setProjects(
-        projects.map((proj) =>
-          proj.id === projectId
-            ? { ...proj, Bullets: [...proj.Bullets, newBullet] }
-            : proj
+        projects.map(proj =>
+          proj.id === projectId ? { ...proj, Bullets: [...proj.Bullets, newBullet] } : proj
         )
       )
       toast.success('Bullet added successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to add bullet')
     }
   }
@@ -287,7 +293,7 @@ export default function ProfilePage() {
       const { education: newEducation } = await res.json()
       setEducation([...education, newEducation])
       toast.success('Education added successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to add education')
     }
   }
@@ -303,9 +309,9 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error('Failed to update education')
 
       const { education: updatedEducation } = await res.json()
-      setEducation(education.map((e) => (e.id === id ? updatedEducation : e)))
+      setEducation(education.map(e => (e.id === id ? updatedEducation : e)))
       toast.success('Education updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update education')
     }
   }
@@ -318,9 +324,9 @@ export default function ProfilePage() {
 
       if (!res.ok) throw new Error('Failed to delete education')
 
-      setEducation(education.filter((e) => e.id !== id))
+      setEducation(education.filter(e => e.id !== id))
       toast.success('Education deleted successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete education')
     }
   }
@@ -339,7 +345,7 @@ export default function ProfilePage() {
       const { experience: newExperience } = await res.json()
       setExperiences([...experiences, { ...newExperience, Bullets: [] }])
       toast.success('Experience added successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to add experience')
     }
   }
@@ -356,12 +362,10 @@ export default function ProfilePage() {
 
       const { experience: updatedExperience } = await res.json()
       setExperiences(
-        experiences.map((e) =>
-          e.id === id ? { ...updatedExperience, Bullets: e.Bullets } : e
-        )
+        experiences.map(e => (e.id === id ? { ...updatedExperience, Bullets: e.Bullets } : e))
       )
       toast.success('Experience updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update experience')
     }
   }
@@ -374,9 +378,9 @@ export default function ProfilePage() {
 
       if (!res.ok) throw new Error('Failed to delete experience')
 
-      setExperiences(experiences.filter((e) => e.id !== id))
+      setExperiences(experiences.filter(e => e.id !== id))
       toast.success('Experience deleted successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete experience')
     }
   }
@@ -394,14 +398,12 @@ export default function ProfilePage() {
 
       const { bullet: newBullet } = await res.json()
       setExperiences(
-        experiences.map((exp) =>
-          exp.id === experienceId
-            ? { ...exp, Bullets: [...exp.Bullets, newBullet] }
-            : exp
+        experiences.map(exp =>
+          exp.id === experienceId ? { ...exp, Bullets: [...exp.Bullets, newBullet] } : exp
         )
       )
       toast.success('Bullet added successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to add bullet')
     }
   }
@@ -420,22 +422,22 @@ export default function ProfilePage() {
 
       // Update in experiences
       setExperiences(
-        experiences.map((exp) => ({
+        experiences.map(exp => ({
           ...exp,
-          Bullets: exp.Bullets.map((b) => (b.id === id ? updatedBullet : b)),
+          Bullets: exp.Bullets.map(b => (b.id === id ? updatedBullet : b)),
         }))
       )
 
       // Update in projects
       setProjects(
-        projects.map((proj) => ({
+        projects.map(proj => ({
           ...proj,
-          Bullets: proj.Bullets.map((b) => (b.id === id ? updatedBullet : b)),
+          Bullets: proj.Bullets.map(b => (b.id === id ? updatedBullet : b)),
         }))
       )
 
       toast.success('Bullet updated successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to update bullet')
     }
   }
@@ -450,22 +452,22 @@ export default function ProfilePage() {
 
       // Remove from experiences
       setExperiences(
-        experiences.map((exp) => ({
+        experiences.map(exp => ({
           ...exp,
-          Bullets: exp.Bullets.filter((b) => b.id !== id),
+          Bullets: exp.Bullets.filter(b => b.id !== id),
         }))
       )
 
       // Remove from projects
       setProjects(
-        projects.map((proj) => ({
+        projects.map(proj => ({
           ...proj,
-          Bullets: proj.Bullets.filter((b) => b.id !== id),
+          Bullets: proj.Bullets.filter(b => b.id !== id),
         }))
       )
 
       toast.success('Bullet deleted successfully')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete bullet')
     }
   }
@@ -479,8 +481,8 @@ export default function ProfilePage() {
         const data = await res.json()
         setResumes(data.resumes || [])
       }
-    } catch (error) {
-      console.error('Failed to load resumes:', error)
+    } catch (err) {
+      console.error('Failed to load resumes:', err)
     } finally {
       setIsLoadingResumes(false)
     }
@@ -496,7 +498,7 @@ export default function ProfilePage() {
 
       toast.success('Resume deleted successfully')
       loadResumes() // Refresh list
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete resume')
     }
   }
@@ -509,7 +511,7 @@ export default function ProfilePage() {
 
       const { downloadUrl } = await res.json()
       window.open(downloadUrl, '_blank')
-    } catch (error) {
+    } catch {
       toast.error('Failed to download resume')
     }
   }
@@ -532,12 +534,11 @@ export default function ProfilePage() {
       <div className="space-y-6">
         {/* Basic Information */}
         <section className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
-          <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">Basic Information</h2>
+          <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">
+            Basic Information
+          </h2>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmitBasics)}
-              className="space-y-4"
-            >
+            <form onSubmit={form.handleSubmit(onSubmitBasics)} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -609,10 +610,7 @@ export default function ProfilePage() {
         <section className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
           <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">Job Preferences</h2>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmitPreferences)}
-              className="space-y-6"
-            >
+            <form onSubmit={form.handleSubmit(onSubmitPreferences)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="job_types"
@@ -658,10 +656,7 @@ export default function ProfilePage() {
         <section className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
           <h2 className="font-lora text-2xl font-semibold text-secondary mb-6">Skills</h2>
           <Form {...form}>
-            <form
-              onSubmit={form.handleSubmit(onSubmitSkills)}
-              className="space-y-6"
-            >
+            <form onSubmit={form.handleSubmit(onSubmitSkills)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="skills"
@@ -669,10 +664,7 @@ export default function ProfilePage() {
                   <FormItem>
                     <FormLabel>Your Skills</FormLabel>
                     <FormControl>
-                      <SkillsInput
-                        value={field.value}
-                        onChange={field.onChange}
-                      />
+                      <SkillsInput value={field.value} onChange={field.onChange} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -707,7 +699,9 @@ export default function ProfilePage() {
         {/* Work Experience */}
         <section className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
           <div className="mb-6">
-            <h2 className="font-lora text-2xl font-semibold text-secondary mb-1">Work Experience</h2>
+            <h2 className="font-lora text-2xl font-semibold text-secondary mb-1">
+              Work Experience
+            </h2>
             <p className="text-sm text-secondary/70">
               Add your professional experience with detailed bullet points
             </p>

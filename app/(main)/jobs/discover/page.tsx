@@ -10,14 +10,16 @@ import { JobResultCard } from '@/components/jobs/discover/job-result-card'
 import { AdzunaAttribution } from '@/components/jobs/discover/adzuna-attribution'
 import { SavedSearchesDropdown } from '@/components/jobs/discover/saved-searches-dropdown'
 import { SaveSearchModal } from '@/components/jobs/discover/save-search-modal'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet'
-import { Loader2, Search as SearchIcon, AlertCircle, ChevronLeft, ChevronRight, Bookmark, SlidersHorizontal } from 'lucide-react'
+  Loader2,
+  Search as SearchIcon,
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  Bookmark,
+  SlidersHorizontal,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import type { AdzunaJob, AdzunaSearchResponse } from '@/lib/adzuna'
 
@@ -46,7 +48,8 @@ function DiscoverContent() {
 
   // Fetch results when URL params change
   useEffect(() => {
-    const hasSearchCriteria = keywords || location || remoteOnly || salaryMin || fullTime || permanent
+    const hasSearchCriteria =
+      keywords || location || remoteOnly || salaryMin || fullTime || permanent
     if (hasSearchCriteria) {
       fetchJobs()
     }
@@ -89,10 +92,11 @@ function DiscoverContent() {
       if (data.results?.length > 0) {
         await checkSavedJobs(data.results)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error searching jobs:', error)
-      setError(error.message)
-      toast.error(error.message)
+      const message = error instanceof Error ? error.message : 'An error occurred'
+      setError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -150,13 +154,20 @@ function DiscoverContent() {
     router.push('/jobs/discover')
   }
 
-  function handleLoadSavedSearch(config: any) {
+  function handleLoadSavedSearch(config: {
+    what?: string
+    where?: string
+    salary_min?: number
+    full_time?: number
+    permanent?: number
+    sort_by?: string
+  }) {
     setKeywords(config.what || '')
     setLocation(config.where || '')
     setSalaryMin(config.salary_min?.toString() || '')
     setFullTime(config.full_time === 1)
     setPermanent(config.permanent === 1)
-    setSortBy(config.sort_by || 'date')
+    setSortBy((config.sort_by as 'date' | 'salary') || 'date')
     setPage(1)
 
     // Trigger search with new params
@@ -229,12 +240,7 @@ function DiscoverContent() {
           />
 
           {hasSearchCriteria && (
-            <Button
-              onClick={handleSaveSearch}
-              variant="outline"
-              size="sm"
-              className="rounded-full"
-            >
+            <Button onClick={handleSaveSearch} variant="outline" size="sm" className="rounded-full">
               <Bookmark className="h-4 w-4 mr-2" />
               <span className="hidden sm:inline">Save Search</span>
               <span className="sm:hidden">Save</span>
@@ -368,13 +374,14 @@ function DiscoverContent() {
               {/* Results Summary */}
               <div className="mb-4">
                 <p className="text-sm text-secondary/70">
-                  Showing {(page - 1) * 10 + 1}-{Math.min(page * 10, results.count)} of {results.count.toLocaleString()} jobs
+                  Showing {(page - 1) * 10 + 1}-{Math.min(page * 10, results.count)} of{' '}
+                  {results.count.toLocaleString()} jobs
                 </p>
               </div>
 
               {/* Job Cards */}
               <div className="space-y-4 mb-6">
-                {results.results.map((job) => (
+                {results.results.map(job => (
                   <JobResultCard
                     key={job.id}
                     job={job}
@@ -438,11 +445,13 @@ function DiscoverContent() {
 
 export default function DiscoverPage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-accent-teal" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-accent-teal" />
+        </div>
+      }
+    >
       <DiscoverContent />
     </Suspense>
   )

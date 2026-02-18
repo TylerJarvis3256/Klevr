@@ -117,7 +117,7 @@ export function calculateNextRunAt(config: ScheduleConfig, fromDate: Date = new 
 /**
  * Validate saved search query configuration
  */
-export function validateQueryConfig(config: any): {
+export function validateQueryConfig(config: unknown): {
   valid: boolean
   errors: string[]
 } {
@@ -127,33 +127,37 @@ export function validateQueryConfig(config: any): {
     return { valid: false, errors: ['Query config must be an object'] }
   }
 
+  const obj = config as Record<string, unknown>
+
   // Validate what (keywords) - optional but should be string if provided
-  if (config.what !== undefined && typeof config.what !== 'string') {
+  if (obj.what !== undefined && typeof obj.what !== 'string') {
     errors.push('what (keywords) must be a string')
   }
 
   // Validate where (location) - optional but should be string if provided
-  if (config.where !== undefined && typeof config.where !== 'string') {
+  if (obj.where !== undefined && typeof obj.where !== 'string') {
     errors.push('where (location) must be a string')
   }
 
   // Validate salary_min - optional but should be number if provided
-  if (config.salary_min !== undefined && typeof config.salary_min !== 'number') {
+  if (obj.salary_min !== undefined && typeof obj.salary_min !== 'number') {
     errors.push('salary_min must be a number')
   }
 
   // Validate full_time - optional but should be 0 or 1 if provided
-  if (config.full_time !== undefined && config.full_time !== 0 && config.full_time !== 1) {
+  if (obj.full_time !== undefined && obj.full_time !== 0 && obj.full_time !== 1) {
     errors.push('full_time must be 0 or 1')
   }
 
   // Validate permanent - optional but should be 0 or 1 if provided
-  if (config.permanent !== undefined && config.permanent !== 0 && config.permanent !== 1) {
+  if (obj.permanent !== undefined && obj.permanent !== 0 && obj.permanent !== 1) {
     errors.push('permanent must be 0 or 1')
   }
 
   // Validate sort_by - optional but should be 'date' or 'salary' if provided
-  if (config.sort_by !== undefined && !['date', 'salary'].includes(config.sort_by)) {
+  if (obj.sort_by !== undefined && typeof obj.sort_by !== 'string') {
+    errors.push('sort_by must be "date" or "salary"')
+  } else if (obj.sort_by !== undefined && !['date', 'salary'].includes(obj.sort_by as string)) {
     errors.push('sort_by must be "date" or "salary"')
   }
 
@@ -175,7 +179,15 @@ export function getScheduleDescription(config: ScheduleConfig): string {
       return `Daily at ${time}`
 
     case 'WEEKLY': {
-      const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+      const dayNames = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ]
       const dayName = dayNames[(config.dayOfWeek ?? 1) - 1]
       return `Weekly on ${dayName} at ${time}`
     }

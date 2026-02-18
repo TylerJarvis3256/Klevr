@@ -44,7 +44,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       url,
       expires_in: 900, // 15 minutes
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Document download error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

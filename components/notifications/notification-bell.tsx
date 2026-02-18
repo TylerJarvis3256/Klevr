@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { NotificationCenter } from './notification-center'
 
 export function NotificationBell() {
@@ -15,24 +11,24 @@ export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
+    async function fetchUnreadCount() {
+      try {
+        const res = await fetch('/api/notifications/unread-count')
+        if (res.ok) {
+          const data = await res.json()
+          setUnreadCount(data.unreadCount || 0)
+        }
+      } catch (err) {
+        console.error('Error fetching unread count:', err)
+      }
+    }
+
     fetchUnreadCount()
 
     // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000)
     return () => clearInterval(interval)
   }, [])
-
-  async function fetchUnreadCount() {
-    try {
-      const res = await fetch('/api/notifications/unread-count')
-      if (res.ok) {
-        const data = await res.json()
-        setUnreadCount(data.unreadCount || 0)
-      }
-    } catch (error) {
-      console.error('Error fetching unread count:', error)
-    }
-  }
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -51,11 +47,7 @@ export function NotificationBell() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        className="w-[400px] p-0 border-0 shadow-lg"
-        sideOffset={8}
-      >
+      <PopoverContent align="end" className="w-[400px] p-0 border-0 shadow-lg" sideOffset={8}>
         <NotificationCenter onClose={() => setIsOpen(false)} />
       </PopoverContent>
     </Popover>

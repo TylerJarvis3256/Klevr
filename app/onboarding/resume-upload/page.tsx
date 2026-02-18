@@ -71,7 +71,9 @@ export default function OnboardingResumeUploadPage() {
       router.push('/onboarding/resume-review')
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error(error instanceof Error ? error.message : 'Failed to upload resume. Please try again.')
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload resume. Please try again.'
+      )
     } finally {
       setIsUploading(false)
     }
@@ -98,7 +100,7 @@ export default function OnboardingResumeUploadPage() {
 
       toast.success('Resume parsed successfully!')
       router.push('/onboarding/resume-review')
-    } catch (error) {
+    } catch {
       toast.error('Failed to parse resume. Please try again.')
     } finally {
       setIsParsing(false)
@@ -121,89 +123,87 @@ export default function OnboardingResumeUploadPage() {
             Upload your resume file (PDF or DOCX) or paste the text for AI-powered parsing.
           </p>
 
-        {uploadMode === 'file' ? (
-          <div className="space-y-6">
-            <FileUpload
-              accept=".pdf,.docx"
-              maxSize={5 * 1024 * 1024}
-              onUpload={handleFileUpload}
-              isUploading={isUploading}
-            />
+          {uploadMode === 'file' ? (
+            <div className="space-y-6">
+              <FileUpload
+                accept=".pdf,.docx"
+                maxSize={5 * 1024 * 1024}
+                onUpload={handleFileUpload}
+                isUploading={isUploading}
+              />
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-secondary/10" />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-secondary/10" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white/95 text-secondary/70">
+                    Or paste your resume text
+                  </span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white/95 text-secondary/70">Or paste your resume text</span>
+
+              <Button variant="secondary" onClick={() => setUploadMode('text')} className="w-full">
+                Paste Resume Text Instead
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium mb-2">Resume Text</label>
+                <Textarea
+                  value={resumeText}
+                  onChange={e => setResumeText(e.target.value)}
+                  placeholder="Paste your resume text here..."
+                  className="min-h-[300px]"
+                />
+                <p className="text-sm text-secondary/70 mt-2">
+                  Paste the text content of your resume for AI parsing
+                </p>
+              </div>
+
+              <div className="flex gap-4">
+                <Button
+                  variant="secondary"
+                  onClick={() => setUploadMode('file')}
+                  disabled={isParsing}
+                >
+                  Upload File Instead
+                </Button>
+                <Button
+                  onClick={handleParseResume}
+                  disabled={isParsing || !resumeText.trim()}
+                  className="flex-1"
+                >
+                  {isParsing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Parsing...
+                    </>
+                  ) : (
+                    'Parse Resume'
+                  )}
+                </Button>
               </div>
             </div>
+          )}
 
+          <div className="flex justify-between gap-4 pt-8">
             <Button
               variant="secondary"
-              onClick={() => setUploadMode('text')}
-              className="w-full"
+              onClick={() => router.push('/onboarding/preferences')}
+              disabled={isUploading || isParsing}
             >
-              Paste Resume Text Instead
+              Back
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push('/onboarding/resume-review')}
+              disabled={isUploading || isParsing}
+            >
+              Skip & Continue
             </Button>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium mb-2">Resume Text</label>
-              <Textarea
-                value={resumeText}
-                onChange={(e) => setResumeText(e.target.value)}
-                placeholder="Paste your resume text here..."
-                className="min-h-[300px]"
-              />
-              <p className="text-sm text-secondary/70 mt-2">
-                Paste the text content of your resume for AI parsing
-              </p>
-            </div>
-
-            <div className="flex gap-4">
-              <Button
-                variant="secondary"
-                onClick={() => setUploadMode('file')}
-                disabled={isParsing}
-              >
-                Upload File Instead
-              </Button>
-              <Button
-                onClick={handleParseResume}
-                disabled={isParsing || !resumeText.trim()}
-                className="flex-1"
-              >
-                {isParsing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Parsing...
-                  </>
-                ) : (
-                  'Parse Resume'
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex justify-between gap-4 pt-8">
-          <Button
-            variant="secondary"
-            onClick={() => router.push('/onboarding/preferences')}
-            disabled={isUploading || isParsing}
-          >
-            Back
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => router.push('/onboarding/resume-review')}
-            disabled={isUploading || isParsing}
-          >
-            Skip & Continue
-          </Button>
-        </div>
         </div>
       </div>
     </div>

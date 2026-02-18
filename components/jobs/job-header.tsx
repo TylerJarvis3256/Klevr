@@ -4,9 +4,15 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ExternalLink, MapPin, Pencil, Trash2 } from 'lucide-react'
-import type { Job, Application } from '@prisma/client'
+import type { Job, Application, ApplicationStatus } from '@prisma/client'
 import { toast } from 'sonner'
 import { EditJobDialog } from './edit-job-dialog'
 
@@ -44,10 +50,10 @@ export function JobHeader({ job, application }: JobHeaderProps) {
 
       if (!res.ok) throw new Error('Failed to update status')
 
-      setStatus(newStatus as any)
+      setStatus(newStatus as ApplicationStatus)
       toast.success('Status updated successfully')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to update status')
     }
   }
@@ -61,7 +67,7 @@ export function JobHeader({ job, application }: JobHeaderProps) {
 
       toast.success('Job deleted successfully')
       router.push('/jobs')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete job')
     }
   }
@@ -101,7 +107,8 @@ export function JobHeader({ job, application }: JobHeaderProps) {
           <div className="flex flex-wrap items-center gap-3">
             {application.fit_bucket && (
               <Badge className={FIT_COLORS[application.fit_bucket]}>
-                {application.fit_bucket.charAt(0) + application.fit_bucket.slice(1).toLowerCase()} Fit
+                {application.fit_bucket.charAt(0) + application.fit_bucket.slice(1).toLowerCase()}{' '}
+                Fit
               </Badge>
             )}
 

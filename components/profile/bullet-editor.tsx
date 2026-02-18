@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import type { Bullet } from '@prisma/client'
+import type { Bullet } from '@/types/models'
 
 interface BulletEditorProps {
   bullets: Bullet[]

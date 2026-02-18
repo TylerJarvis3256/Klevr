@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+
+let projectIdCounter = 0
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -34,13 +36,13 @@ const projectSchema = z.object({
   url: z
     .string()
     .optional()
-    .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
+    .refine(val => !val || val === '' || z.string().url().safeParse(val).success, {
       message: 'Must be a valid URL',
     }),
   github_link: z
     .string()
     .optional()
-    .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
+    .refine(val => !val || val === '' || z.string().url().safeParse(val).success, {
       message: 'Must be a valid URL',
     }),
 })
@@ -110,16 +112,12 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
   const handleSubmit = (data: ProjectFormData) => {
     if (editingProject) {
       // Update existing project
-      const updated = projects.map((p) =>
-        p.id === editingProject.id
-          ? { ...p, ...data }
-          : p
-      )
+      const updated = projects.map(p => (p.id === editingProject.id ? { ...p, ...data } : p))
       onChange(updated)
     } else {
       // Add new project
       const newProject: Project = {
-        id: `temp-${Date.now()}`,
+        id: `temp-${++projectIdCounter}`,
         name: data.name,
         description: data.description || null,
         technologies: data.technologies,
@@ -134,7 +132,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
   }
 
   const handleDelete = (id: string) => {
-    onChange(projects.filter((p) => p.id !== id))
+    onChange(projects.filter(p => p.id !== id))
   }
 
   const handleAddTech = () => {
@@ -142,9 +140,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
     if (!trimmed) return
 
     const currentTechs = form.getValues('technologies')
-    const isDuplicate = currentTechs.some(
-      (tech) => tech.toLowerCase() === trimmed.toLowerCase()
-    )
+    const isDuplicate = currentTechs.some(tech => tech.toLowerCase() === trimmed.toLowerCase())
 
     if (!isDuplicate) {
       form.setValue('technologies', [...currentTechs, trimmed])
@@ -156,7 +152,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
     const currentTechs = form.getValues('technologies')
     form.setValue(
       'technologies',
-      currentTechs.filter((t) => t !== tech)
+      currentTechs.filter(t => t !== tech)
     )
   }
 
@@ -172,7 +168,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
       {/* Projects List */}
       {projects.length > 0 && (
         <div className="space-y-4">
-          {projects.map((project) => (
+          {projects.map(project => (
             <div
               key={project.id}
               className="bg-white rounded-2xl border border-secondary/10 shadow-card p-6 transition-all duration-300 hover:shadow-lg"
@@ -214,7 +210,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
 
               {project.technologies.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {project.technologies.map((tech) => (
+                  {project.technologies.map(tech => (
                     <div
                       key={tech}
                       className="px-3 py-1 rounded-full bg-accent-teal/10 border border-accent-teal/20 text-xs font-medium text-accent-teal"
@@ -266,12 +262,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
       )}
 
       {/* Add Project Button */}
-      <Button
-        type="button"
-        variant="outline"
-        onClick={openAddDialog}
-        className="w-full"
-      >
+      <Button type="button" variant="outline" onClick={openAddDialog} className="w-full">
         <Plus className="h-4 w-4 mr-2" />
         Add Project
       </Button>
@@ -339,7 +330,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
                           <Input
                             type="text"
                             value={techInput}
-                            onChange={(e) => setTechInput(e.target.value)}
+                            onChange={e => setTechInput(e.target.value)}
                             onKeyDown={handleTechKeyDown}
                             placeholder="e.g., React, Node.js, MongoDB"
                           />
@@ -355,7 +346,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
 
                         {field.value.length > 0 && (
                           <div className="flex flex-wrap gap-2">
-                            {field.value.map((tech) => (
+                            {field.value.map(tech => (
                               <div
                                 key={tech}
                                 className="inline-flex items-center gap-1 bg-primary text-secondary px-3 py-1.5 rounded-full text-sm font-medium"
@@ -406,11 +397,7 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
                   <FormItem>
                     <FormLabel>Project URL</FormLabel>
                     <FormControl>
-                      <Input
-                        type="url"
-                        placeholder="https://example.com"
-                        {...field}
-                      />
+                      <Input type="url" placeholder="https://example.com" {...field} />
                     </FormControl>
                     <FormDescription className="text-xs">
                       Link to live demo or project website
@@ -427,34 +414,24 @@ export function ProjectsInput({ value: projects, onChange, className }: Projects
                   <FormItem>
                     <FormLabel>GitHub Link</FormLabel>
                     <FormControl>
-                      <Input
-                        type="url"
-                        placeholder="https://github.com/username/repo"
-                        {...field}
-                      />
+                      <Input type="url" placeholder="https://github.com/username/repo" {...field} />
                     </FormControl>
-                    <FormDescription className="text-xs">
-                      Link to GitHub repository
-                    </FormDescription>
+                    <FormDescription className="text-xs">Link to GitHub repository</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setDialogOpen(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting
                     ? 'Saving...'
                     : editingProject
-                    ? 'Save Changes'
-                    : 'Add Project'}
+                      ? 'Save Changes'
+                      : 'Add Project'}
                 </Button>
               </div>
             </form>

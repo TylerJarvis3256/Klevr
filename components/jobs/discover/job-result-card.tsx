@@ -5,7 +5,16 @@ import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ExternalLink, Loader2, Check, Building2, MapPin, DollarSign, Calendar, Briefcase } from 'lucide-react'
+import {
+  ExternalLink,
+  Loader2,
+  Check,
+  Building2,
+  MapPin,
+  DollarSign,
+  Calendar,
+  Briefcase,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import type { AdzunaJob } from '@/lib/adzuna'
 
@@ -27,33 +36,33 @@ export function JobResultCard({ job, onSave, isSaved = false }: JobResultCardPro
       await onSave(job)
       setSaved(true)
       toast.success('Job saved to pipeline')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to save job')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to save job')
     } finally {
       setIsSaving(false)
     }
   }
 
   // Format salary range
-  const salaryDisplay = job.salary_min && job.salary_max
-    ? `$${Math.round(job.salary_min / 1000)}k - $${Math.round(job.salary_max / 1000)}k`
-    : job.salary_min
-      ? `$${Math.round(job.salary_min / 1000)}k+`
-      : null
+  const salaryDisplay =
+    job.salary_min && job.salary_max
+      ? `$${Math.round(job.salary_min / 1000)}k - $${Math.round(job.salary_max / 1000)}k`
+      : job.salary_min
+        ? `$${Math.round(job.salary_min / 1000)}k+`
+        : null
 
   // Format contract type
-  const contractDisplay = [job.contract_time, job.contract_type]
-    .filter(Boolean)
-    .join(' • ')
+  const contractDisplay = [job.contract_time, job.contract_type].filter(Boolean).join(' • ')
 
   // Format created date
   const createdDate = new Date(job.created)
   const timeAgo = formatDistanceToNow(createdDate, { addSuffix: true })
 
   // Truncate description to ~200 characters
-  const truncatedDescription = job.description.length > 200
-    ? job.description.substring(0, 200).trim() + '...'
-    : job.description
+  const truncatedDescription =
+    job.description.length > 200
+      ? job.description.substring(0, 200).trim() + '...'
+      : job.description
 
   return (
     <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-4 sm:p-6 hover:shadow-lg transition-shadow">
@@ -111,12 +120,13 @@ export function JobResultCard({ job, onSave, isSaved = false }: JobResultCardPro
       {/* Metadata Badges */}
       <div className="flex flex-wrap items-center gap-2 mb-4">
         {salaryDisplay && (
-          <Badge variant="outline" className="bg-accent-teal/5 text-accent-teal border-accent-teal/20">
+          <Badge
+            variant="outline"
+            className="bg-accent-teal/5 text-accent-teal border-accent-teal/20"
+          >
             <DollarSign className="h-3 w-3 mr-1" />
             {salaryDisplay}
-            {job.salary_is_predicted === 1 && (
-              <span className="text-xs ml-1">(est.)</span>
-            )}
+            {job.salary_is_predicted === 1 && <span className="text-xs ml-1">(est.)</span>}
           </Badge>
         )}
 

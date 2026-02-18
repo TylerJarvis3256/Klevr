@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json(note, { status: 201 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('POST /api/notes error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -3,22 +3,17 @@ import { loadPrompt } from './prompts'
 import { rankBullets, detectBulletMetrics } from './bullet-scorer'
 import { estimateContentWordCount } from './resume-tailoring'
 import { type MarkdownUserInfo } from './markdown/resume-to-markdown'
-import type {
-  StructuredProfileData,
-  GeneratedResumeContent,
-  SkillsV1,
-  SkillsV2,
-} from './resume-generator'
+import type { StructuredProfileData, SkillsV1, SkillsV2 } from './resume-generator'
 import { isSkillsV2 } from './resume-generator'
 import type { SemanticJDAnalysis } from './semantic-analyzer'
 import type { Job } from '@prisma/client'
 import { deepSanitizeEmDashes } from './utils'
-import { governOnePage } from './one-page-governor'
+import { governOnePage, type GovernableContent } from './one-page-governor'
 
 // ─── Interfaces ───────────────────────────────────────
 
 export interface ResumeV3Output {
-  content: GeneratedResumeContent
+  content: GovernableContent
   markdown: string
   metadata: {
     semantic_analysis: SemanticJDAnalysis
@@ -231,12 +226,7 @@ export async function generateResumeV3(
     { timeout: 45000 }
   )
 
-  let generatedContent = parseAnthropicJson<
-    GeneratedResumeContent & {
-      lead?: string
-      section_order?: string[]
-    }
-  >(message)
+  let generatedContent = parseAnthropicJson<GovernableContent>(message)
   generatedContent = deepSanitizeEmDashes(generatedContent)
 
   // Step 5: Post-process — validate skills guardrail
@@ -298,7 +288,7 @@ export async function generateResumeV3(
 
   if (generatedContent.projects) {
     for (const genProj of generatedContent.projects) {
-      const projBullets = (genProj as any).bullets as string[] | undefined
+      const projBullets = genProj.bullets
       if (!projBullets) continue
 
       // Match generated project back to original by name (case-insensitive)
@@ -345,8 +335,7 @@ export async function generateResumeV3(
   // Recalculate bullets from governed content
   const bulletsUsed =
     (finalContent.experience?.reduce((sum, exp) => sum + exp.bullets.length, 0) || 0) +
-    (finalContent.projects?.reduce((sum, proj) => sum + ((proj as any).bullets?.length || 0), 0) ||
-      0)
+    (finalContent.projects?.reduce((sum, proj) => sum + (proj.bullets?.length || 0), 0) || 0)
 
   return {
     content: finalContent,

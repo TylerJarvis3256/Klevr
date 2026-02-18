@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { prisma } from '@/lib/prisma'
+import { prisma, Prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { parseResumeText } from '@/lib/resume-parser'
 
@@ -64,31 +64,12 @@ export async function POST(req: NextRequest) {
       where: { user_id: user.id },
       create: {
         user_id: user.id,
-        parsed_resume: parsedResume as any,
+        parsed_resume: parsedResume as unknown as Prisma.InputJsonValue,
       },
       update: {
-        parsed_resume: parsedResume as any,
+        parsed_resume: parsedResume as unknown as Prisma.InputJsonValue,
         // Clear confirmation when re-parsing
         parsed_resume_confirmed_at: null,
-      },
-    })
-
-    // 6. Create ResumeUpload record
-    const fileName = parsed.data.key
-      ? parsed.data.key.split('/').pop() || 'Uploaded Resume'
-      : 'Pasted Resume'
-
-    await prisma.resumeUpload.create({
-      data: {
-        user_id: user.id,
-        file_name: fileName,
-        file_url: parsed.data.key || '',
-        file_type: parsed.data.fileType || 'text/plain',
-        file_size: resumeText.length, // Approximate size
-        uploaded_at: new Date(),
-        parsed_at: new Date(),
-        parsed_resume: parsedResume as any,
-        source: 'ONBOARDING',
       },
     })
 
@@ -96,7 +77,6 @@ export async function POST(req: NextRequest) {
       success: true,
       parsed_resume: parsedResume,
     })
-
   } catch (error) {
     console.error('POST /api/resume/parse error:', error)
 
@@ -111,9 +91,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(
-      { error: 'Failed to parse resume' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to parse resume' }, { status: 500 })
   }
 }

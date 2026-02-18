@@ -80,8 +80,8 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
       setSelectedIds(new Set())
       setBulkStatus('')
       onUpdate?.()
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setIsUpdatingStatus(false)
     }
@@ -118,8 +118,8 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
       toast.success(`Deleted ${result.count} application(s)`)
       setSelectedIds(new Set())
       onUpdate?.()
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setIsDeleting(false)
     }
@@ -134,9 +134,7 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
         <div className="bg-accent-teal/10 border border-accent-teal/30 rounded-xl p-4 flex items-center gap-4 flex-wrap">
           <div className="flex items-center gap-2">
             <CheckSquare className="h-5 w-5 text-accent-teal" aria-hidden="true" />
-            <span className="font-medium text-secondary">
-              {selectedCount} selected
-            </span>
+            <span className="font-medium text-secondary">{selectedCount} selected</span>
           </div>
 
           <div className="flex items-center gap-2 flex-1 flex-wrap">
@@ -216,12 +214,8 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
                 <th className="text-left px-6 py-3 text-sm font-semibold text-secondary">
                   Company
                 </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-secondary">
-                  Status
-                </th>
-                <th className="text-left px-6 py-3 text-sm font-semibold text-secondary">
-                  Fit
-                </th>
+                <th className="text-left px-6 py-3 text-sm font-semibold text-secondary">Status</th>
+                <th className="text-left px-6 py-3 text-sm font-semibold text-secondary">Fit</th>
                 <th className="text-left px-6 py-3 text-sm font-semibold text-secondary">
                   Updated
                 </th>

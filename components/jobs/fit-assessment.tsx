@@ -41,9 +41,15 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
     const serverMissing = application.missing_skills || []
 
     // Add optimistically added skills to matching, remove from missing
-    const mergedMatching = [...new Set([...serverMatching, ...Array.from(optimisticallyAddedSkills)])]
-    const mergedMissingRequired = serverMissingRequired.filter(s => !optimisticallyAddedSkills.has(s))
-    const mergedMissingPreferred = serverMissingPreferred.filter(s => !optimisticallyAddedSkills.has(s))
+    const mergedMatching = [
+      ...new Set([...serverMatching, ...Array.from(optimisticallyAddedSkills)]),
+    ]
+    const mergedMissingRequired = serverMissingRequired.filter(
+      s => !optimisticallyAddedSkills.has(s)
+    )
+    const mergedMissingPreferred = serverMissingPreferred.filter(
+      s => !optimisticallyAddedSkills.has(s)
+    )
     const mergedMissing = serverMissing.filter(s => !optimisticallyAddedSkills.has(s))
 
     setMatchingSkills(mergedMatching)
@@ -74,9 +80,7 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
       const currentSkills = profile.skills || []
 
       // Check if skill already exists (case-insensitive)
-      const skillExists = currentSkills.some(
-        (s: string) => s.toLowerCase() === skill.toLowerCase()
-      )
+      const skillExists = currentSkills.some((s: string) => s.toLowerCase() === skill.toLowerCase())
 
       if (skillExists) {
         toast.info('Skill already in your profile')
@@ -94,17 +98,17 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
       if (!updateRes.ok) throw new Error('Failed to update skills')
 
       // Track this skill as optimistically added
-      setOptimisticallyAddedSkills((prev) => new Set([...prev, skill]))
+      setOptimisticallyAddedSkills(prev => new Set([...prev, skill]))
 
       // Optimistically update UI - move skill from missing to matching
-      setMatchingSkills((prev) => [...prev, skill])
-      setMissingRequiredSkills((prev) => prev.filter((s) => s !== skill))
-      setMissingPreferredSkills((prev) => prev.filter((s) => s !== skill))
-      setMissingSkills((prev) => prev.filter((s) => s !== skill))
+      setMatchingSkills(prev => [...prev, skill])
+      setMissingRequiredSkills(prev => prev.filter(s => s !== skill))
+      setMissingPreferredSkills(prev => prev.filter(s => s !== skill))
+      setMissingSkills(prev => prev.filter(s => s !== skill))
 
       toast.success(`Added "${skill}" to your profile`)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to add skill to profile')
     } finally {
       setAddingSkill(null)
@@ -217,12 +221,12 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
                     <li
                       key={i}
                       className="text-sm text-secondary/80 flex items-center gap-2"
-                      title={isOptimistic ? 'Added locally - re-assess to update fit score' : undefined}
+                      title={
+                        isOptimistic ? 'Added locally - re-assess to update fit score' : undefined
+                      }
                     >
                       • {skill}
-                      {isOptimistic && (
-                        <span className="text-xs text-accent-teal">*</span>
-                      )}
+                      {isOptimistic && <span className="text-xs text-accent-teal">*</span>}
                     </li>
                   )
                 })}
@@ -248,10 +252,15 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
                 {/* Required Skills */}
                 {missingRequiredSkills.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-orange-600 mb-2 uppercase tracking-wide">Required</h4>
+                    <h4 className="text-xs font-semibold text-orange-600 mb-2 uppercase tracking-wide">
+                      Required
+                    </h4>
                     <ul className="space-y-2">
                       {missingRequiredSkills.map((skill, i) => (
-                        <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                        <li
+                          key={i}
+                          className="flex items-center justify-between text-sm text-secondary/80"
+                        >
                           <span>• {skill}</span>
                           <Button
                             type="button"
@@ -279,10 +288,15 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
                 {/* Preferred Skills */}
                 {missingPreferredSkills.length > 0 && (
                   <div>
-                    <h4 className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">Preferred</h4>
+                    <h4 className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wide">
+                      Preferred
+                    </h4>
                     <ul className="space-y-2">
                       {missingPreferredSkills.map((skill, i) => (
-                        <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
+                        <li
+                          key={i}
+                          className="flex items-center justify-between text-sm text-secondary/80"
+                        >
                           <span>• {skill}</span>
                           <Button
                             type="button"
@@ -309,33 +323,36 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
 
                 {/* Fallback for old missing_skills field (for existing jobs) */}
                 {missingSkills.length > 0 &&
-                 missingRequiredSkills.length === 0 &&
-                 missingPreferredSkills.length === 0 && (
-                  <ul className="space-y-2">
-                    {missingSkills.map((skill, i) => (
-                      <li key={i} className="flex items-center justify-between text-sm text-secondary/80">
-                        <span>• {skill}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleAddSkill(skill)}
-                          disabled={addingSkill === skill}
-                          className="h-7 px-2 text-xs"
+                  missingRequiredSkills.length === 0 &&
+                  missingPreferredSkills.length === 0 && (
+                    <ul className="space-y-2">
+                      {missingSkills.map((skill, i) => (
+                        <li
+                          key={i}
+                          className="flex items-center justify-between text-sm text-secondary/80"
                         >
-                          {addingSkill === skill ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add
-                            </>
-                          )}
-                        </Button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                          <span>• {skill}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleAddSkill(skill)}
+                            disabled={addingSkill === skill}
+                            className="h-7 px-2 text-xs"
+                          >
+                            {addingSkill === skill ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="h-3 w-3 mr-1" />
+                                Add
+                              </>
+                            )}
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
               </div>
             </div>
           )}
@@ -343,12 +360,7 @@ export function FitAssessment({ application, aiTask }: FitAssessmentProps) {
 
         {/* Re-assessment Button */}
         <div className="flex justify-end pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleRescore}
-            disabled={isRescoring}
-          >
+          <Button type="button" variant="outline" onClick={handleRescore} disabled={isRescoring}>
             {isRescoring ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />

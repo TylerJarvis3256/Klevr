@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createSemanticAnalysis, createJob } from '@/__tests__/helpers'
+import type { Job } from '@prisma/client'
 
 // Use vi.hoisted so the mock variable is available during vi.mock hoisting
 const { mockCreate } = vi.hoisted(() => ({
@@ -13,7 +14,7 @@ vi.mock('@/lib/anthropic', () => ({
   },
   ANTHROPIC_MODELS: { SONNET: 'claude-sonnet-4-5-20250929' },
   callAnthropic: vi.fn((_userId: string, fn: () => Promise<unknown>) => fn()),
-  parseAnthropicJson: vi.fn((message: any) => {
+  parseAnthropicJson: vi.fn((message: { content: Array<{ text: string }> }) => {
     const text = message.content[0].text
     return JSON.parse('{' + text)
   }),
@@ -74,7 +75,7 @@ describe('analyzeJobDescription', () => {
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
-    const job = createJob({ title: 'Backend Engineer', company: 'Startup Inc' }) as any
+    const job = createJob({ title: 'Backend Engineer', company: 'Startup Inc' }) as unknown as Job
     await analyzeJobDescription('user-1', createTestProfile(), job, { requirements: ['Node.js'] })
 
     expect(loadPrompt).toHaveBeenCalledWith('resume', 'semantic-analysis-v1')
@@ -94,7 +95,7 @@ describe('analyzeJobDescription', () => {
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const result = await analyzeJobDescription('user-1', createTestProfile(), job, {})
 
     expect(result.role_intent).toBe(analysis.role_intent)
@@ -112,7 +113,7 @@ describe('analyzeJobDescription', () => {
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const result = await analyzeJobDescription('user-1', createTestProfile(), job, {})
 
     expect(result.skills_to_emphasize).toContain('TypeScript')
@@ -128,7 +129,7 @@ describe('analyzeJobDescription', () => {
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const result = await analyzeJobDescription('user-1', createTestProfile(), job, {})
 
     expect(result.skills_to_emphasize).toEqual([])
@@ -137,7 +138,7 @@ describe('analyzeJobDescription', () => {
   it('propagates Anthropic errors', async () => {
     mockCreate.mockRejectedValue(new Error('Anthropic API error: rate limited'))
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     await expect(analyzeJobDescription('user-1', createTestProfile(), job, {})).rejects.toThrow(
       'Anthropic API error'
     )
@@ -154,7 +155,7 @@ describe('analyzeJobDescription', () => {
     profile.experiences[0].key_metrics = '40% latency reduction, 10K daily users'
     profile.projects[0].key_metrics = '500+ GitHub stars'
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     await analyzeJobDescription('user-1', profile, job, {})
 
     const callArgs = mockCreate.mock.calls[0][0]
@@ -172,7 +173,7 @@ describe('analyzeJobDescription', () => {
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     await analyzeJobDescription('user-1', createTestProfile(), job, {})
 
     const callArgs = mockCreate.mock.calls[0][0]
@@ -188,7 +189,7 @@ describe('analyzeJobDescription', () => {
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     await analyzeJobDescription('user-1', createTestProfile(), job, {})
 
     const callArgs = mockCreate.mock.calls[0][0]

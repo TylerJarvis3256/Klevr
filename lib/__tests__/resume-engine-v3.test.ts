@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createSemanticAnalysis, createJob } from '@/__tests__/helpers'
+import type { Job } from '@prisma/client'
 
 // Use vi.hoisted so the mock variable is available during vi.mock hoisting
 const { mockCreate } = vi.hoisted(() => ({
@@ -21,7 +22,7 @@ vi.mock('@/lib/anthropic', () => ({
   },
   ANTHROPIC_MODELS: { SONNET: 'claude-sonnet-4-5-20250929' },
   callAnthropic: vi.fn((_userId: string, fn: () => Promise<unknown>) => fn()),
-  parseAnthropicJson: vi.fn((message: any) => {
+  parseAnthropicJson: vi.fn((message: { content: Array<{ text: string }> }) => {
     const text = message.content[0].text
     return JSON.parse('{' + text)
   }),
@@ -45,6 +46,7 @@ import { generateResumeV3 } from '@/lib/resume-engine-v3'
 import type {
   StructuredProfileData,
   GeneratedResumeContent,
+  SkillsV1,
   SkillsV2,
 } from '@/lib/resume-generator'
 import { isSkillsV2 } from '@/lib/resume-generator'
@@ -144,7 +146,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob({ title: 'Software Engineer', company: 'Startup' }) as any
+    const job = createJob({ title: 'Software Engineer', company: 'Startup' }) as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -168,7 +170,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis({
       recommended_section_order: ['projects', 'experience'],
       project_section_total: 90,
@@ -197,7 +199,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -232,7 +234,7 @@ describe('generateResumeV3', () => {
       bullets: ['Handled customer service'],
     })
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis({
       entries_to_include: { experiences: [0], projects: [0] },
       entries_to_exclude: {
@@ -259,7 +261,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis({
       professional_title: 'Full-Stack Engineer',
     }) as unknown as SemanticJDAnalysis
@@ -281,7 +283,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -301,7 +303,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     // experience_section_total > project_section_total (no 20% override)
     const analysis = createSemanticAnalysis({
       experience_section_total: 85,
@@ -332,7 +334,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     // project_section_total >= experience_section_total * 1.2
     const analysis = createSemanticAnalysis({
       experience_section_total: 60,
@@ -361,7 +363,7 @@ describe('generateResumeV3', () => {
     profile.experiences[0].key_metrics = '40% latency reduction, 10K daily users'
     profile.projects[0].key_metrics = '500+ GitHub stars'
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -383,14 +385,14 @@ describe('generateResumeV3', () => {
     v3Content.skills = {
       technical: ['TypeScript', 'React', 'Rust'],
       other: ['Team Leadership'],
-    } as any
+    } as unknown as SkillsV2
     const jsonStr = JSON.stringify(v3Content)
     mockCreate.mockResolvedValue({
       content: [{ type: 'text', text: jsonStr.slice(1) }],
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -398,7 +400,7 @@ describe('generateResumeV3', () => {
       email: 'jane@test.com',
     })
 
-    const skills = result.content.skills as any
+    const skills = result.content.skills as SkillsV1
     expect(skills.technical).toContain('TypeScript')
     expect(skills.technical).not.toContain('Rust')
   })
@@ -411,7 +413,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -452,7 +454,7 @@ describe('generateResumeV3', () => {
       }
     )
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     // Analysis excludes ALL experiences
     const analysis = createSemanticAnalysis({
       entries_to_include: { experiences: [], projects: [0] },
@@ -493,7 +495,7 @@ describe('generateResumeV3', () => {
 
     const profile = createTestProfile()
     // Profile has 1 experience, analysis excludes it
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis({
       entries_to_include: { experiences: [], projects: [0] },
       entries_to_exclude: {
@@ -522,7 +524,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -547,7 +549,7 @@ describe('generateResumeV3', () => {
 
     const profile = createTestProfile()
     // Profile has 2 metric bullets: "10K+ requests/day" and "latency by 40%"
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -579,7 +581,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -604,7 +606,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -625,7 +627,7 @@ describe('generateResumeV3', () => {
         description: 'Full-stack task management application',
         technologies: ['React', 'Node.js', 'PostgreSQL'],
         bullets: ['Built responsive UI with React and TypeScript'],
-      } as any,
+      } as GeneratedResumeContent['projects'][number] & { bullets: string[] },
     ]
     const jsonStr = JSON.stringify(v3Content)
     mockCreate.mockResolvedValue({
@@ -639,7 +641,7 @@ describe('generateResumeV3', () => {
       'Achieved $50K in cost savings through automated testing',
     ]
 
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -648,8 +650,11 @@ describe('generateResumeV3', () => {
     })
 
     // The "$50K" metric bullet should be restored
-    const projBullets = result.content.projects?.flatMap(p => (p as any).bullets || []) || []
-    expect(projBullets.some((b: string) => b.includes('$50K'))).toBe(true)
+    const projBullets =
+      result.content.projects?.flatMap(
+        p => (p as unknown as { bullets?: string[] }).bullets || []
+      ) || []
+    expect(projBullets.some(b => b.includes('$50K'))).toBe(true)
     expect(result.metadata.metric_restored_count).toBeGreaterThanOrEqual(1)
   })
 
@@ -661,7 +666,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -698,7 +703,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -724,7 +729,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -744,7 +749,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
@@ -765,7 +770,7 @@ describe('generateResumeV3', () => {
     })
 
     const profile = createTestProfile()
-    const job = createJob() as any
+    const job = createJob() as unknown as Job
     const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
 
     await generateResumeV3('user-1', profile, job, {}, analysis, {

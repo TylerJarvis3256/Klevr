@@ -12,15 +12,24 @@ import {
 import { Bookmark, ChevronDown, Loader2, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
+interface SearchQueryConfig {
+  what?: string
+  where?: string
+  salary_min?: number
+  full_time?: number
+  permanent?: number
+  sort_by?: string
+}
+
 interface SavedSearch {
   id: string
   name: string
-  query_config: any
+  query_config: SearchQueryConfig
   frequency: string
 }
 
 interface SavedSearchesDropdownProps {
-  onLoadSearch: (config: any) => void
+  onLoadSearch: (config: SearchQueryConfig) => void
   onNewSearch: () => void
 }
 
@@ -82,19 +91,14 @@ export function SavedSearchesDropdown({ onLoadSearch, onNewSearch }: SavedSearch
         ) : searches.length === 0 ? (
           <div className="px-3 py-4 text-center">
             <p className="text-sm text-secondary/70 mb-2">No saved searches yet</p>
-            <Button
-              onClick={onNewSearch}
-              variant="ghost"
-              size="sm"
-              className="w-full rounded-full"
-            >
+            <Button onClick={onNewSearch} variant="ghost" size="sm" className="w-full rounded-full">
               <Plus className="h-4 w-4 mr-2" />
               Save your first search
             </Button>
           </div>
         ) : (
           <>
-            {searches.map((search) => (
+            {searches.map(search => (
               <DropdownMenuItem
                 key={search.id}
                 onClick={() => handleLoadSearch(search)}

@@ -16,11 +16,7 @@ interface DocumentsListProps {
   documentTasks: AiTask[]
 }
 
-export function DocumentsList({
-  documents,
-  applicationId,
-  documentTasks,
-}: DocumentsListProps) {
+export function DocumentsList({ documents, applicationId, documentTasks }: DocumentsListProps) {
   const router = useRouter()
   const [generatingResume, setGeneratingResume] = useState(false)
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false)
@@ -33,8 +29,7 @@ export function DocumentsList({
   // Find in-progress resume and cover letter generation tasks
   const resumeTask = documentTasks.find(
     task =>
-      task.type === 'RESUME_GENERATION' &&
-      (task.status === 'PENDING' || task.status === 'RUNNING')
+      task.type === 'RESUME_GENERATION' && (task.status === 'PENDING' || task.status === 'RUNNING')
   )
   const coverLetterTask = documentTasks.find(
     task =>
@@ -75,8 +70,8 @@ export function DocumentsList({
         router.refresh()
         setGeneratingResume(false)
       }, 2000)
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
       setGeneratingResume(false)
     }
   }
@@ -102,8 +97,8 @@ export function DocumentsList({
         router.refresh()
         setGeneratingCoverLetter(false)
       }, 2000)
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
       setGeneratingCoverLetter(false)
     }
   }
@@ -123,8 +118,8 @@ export function DocumentsList({
       window.open(url, '_blank')
 
       toast.success('Download started')
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
     } finally {
       setDownloadingId(null)
     }
@@ -156,8 +151,8 @@ export function DocumentsList({
 
       // Refresh to hide the deleted document
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete document')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete document')
     }
   }
 
@@ -173,8 +168,8 @@ export function DocumentsList({
 
       toast.success('Document restored')
       router.refresh()
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to restore document')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to restore document')
     }
   }
 
@@ -198,8 +193,8 @@ export function DocumentsList({
       setEditingDocId(null)
       router.refresh()
       toast.success('Name updated')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to update name')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update name')
     }
   }
 
@@ -263,16 +258,14 @@ export function DocumentsList({
             <div className="text-center py-8 border border-accent-teal/30 rounded-xl bg-accent-teal/5">
               <Loader2 className="h-8 w-8 text-accent-teal mx-auto mb-2 animate-spin" />
               <p className="text-sm text-secondary/70 font-medium">Generating resume...</p>
-              <p className="text-xs text-secondary/50 mt-1">
-                This may take 30-60 seconds
-              </p>
+              <p className="text-xs text-secondary/50 mt-1">This may take 30-60 seconds</p>
             </div>
           ) : resumeDocs.length === 0 ? (
             <div className="text-center py-8 border border-secondary/10 rounded-xl bg-primary/20">
               <FileText className="h-8 w-8 text-secondary/40 mx-auto mb-2" />
               <p className="text-sm text-secondary/60">No resumes generated yet</p>
               <p className="text-xs text-secondary/50 mt-1">
-                Click "Generate Resume" to create a tailored resume for this job
+                Click &quot;Generate Resume&quot; to create a tailored resume for this job
               </p>
             </div>
           ) : (
@@ -289,9 +282,9 @@ export function DocumentsList({
                         <input
                           type="text"
                           value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
+                          onChange={e => setEditName(e.target.value)}
                           onBlur={() => handleSaveDocumentName(doc.id)}
-                          onKeyDown={(e) => {
+                          onKeyDown={e => {
                             if (e.key === 'Enter') handleSaveDocumentName(doc.id)
                             if (e.key === 'Escape') setEditingDocId(null)
                           }}
@@ -319,11 +312,7 @@ export function DocumentsList({
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => handlePreview(doc)}
-                      variant="outline"
-                      size="sm"
-                    >
+                    <Button onClick={() => handlePreview(doc)} variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-2" />
                       Preview
                     </Button>
@@ -367,16 +356,14 @@ export function DocumentsList({
             <div className="text-center py-8 border border-accent-orange/30 rounded-xl bg-accent-orange/5">
               <Loader2 className="h-8 w-8 text-accent-orange mx-auto mb-2 animate-spin" />
               <p className="text-sm text-secondary/70 font-medium">Generating cover letter...</p>
-              <p className="text-xs text-secondary/50 mt-1">
-                This may take 30-60 seconds
-              </p>
+              <p className="text-xs text-secondary/50 mt-1">This may take 30-60 seconds</p>
             </div>
           ) : coverLetterDocs.length === 0 ? (
             <div className="text-center py-8 border border-secondary/10 rounded-xl bg-primary/20">
               <FileText className="h-8 w-8 text-secondary/40 mx-auto mb-2" />
               <p className="text-sm text-secondary/60">No cover letters generated yet</p>
               <p className="text-xs text-secondary/50 mt-1">
-                Click "Generate Cover Letter" to create a tailored cover letter
+                Click &quot;Generate Cover Letter&quot; to create a tailored cover letter
               </p>
             </div>
           ) : (
@@ -393,9 +380,9 @@ export function DocumentsList({
                         <input
                           type="text"
                           value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
+                          onChange={e => setEditName(e.target.value)}
                           onBlur={() => handleSaveDocumentName(doc.id)}
-                          onKeyDown={(e) => {
+                          onKeyDown={e => {
                             if (e.key === 'Enter') handleSaveDocumentName(doc.id)
                             if (e.key === 'Escape') setEditingDocId(null)
                           }}
@@ -423,11 +410,7 @@ export function DocumentsList({
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={() => handlePreview(doc)}
-                      variant="outline"
-                      size="sm"
-                    >
+                    <Button onClick={() => handlePreview(doc)} variant="outline" size="sm">
                       <Eye className="h-4 w-4 mr-2" />
                       Preview
                     </Button>

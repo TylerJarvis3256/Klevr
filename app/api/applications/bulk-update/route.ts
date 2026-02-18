@@ -55,7 +55,10 @@ export async function POST(req: NextRequest) {
 
     if (action === 'update_status') {
       if (!data?.status) {
-        return NextResponse.json({ error: 'Status is required for update_status action' }, { status: 400 })
+        return NextResponse.json(
+          { error: 'Status is required for update_status action' },
+          { status: 400 }
+        )
       }
 
       result = await prisma.application.updateMany({
@@ -95,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('POST /api/applications/bulk-update error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

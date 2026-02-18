@@ -14,7 +14,7 @@ interface ApplicationCardProps {
     Job: Job
   }
   isDragging?: boolean
-  dragHandleProps?: any
+  dragHandleProps?: Record<string, unknown>
 }
 
 export function ApplicationCard({
@@ -98,7 +98,7 @@ export function ApplicationCard({
       toast.success('Application deleted successfully')
       setDeleteDialogOpen(false)
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete application')
       setIsDeleting(false)
     }
@@ -121,12 +121,12 @@ export function ApplicationCard({
           <div className="flex items-start justify-between gap-2 mb-1">
             <h3
               onClick={handleCardClick}
-              onPointerDown={(e) => e.stopPropagation()}
+              onPointerDown={e => e.stopPropagation()}
               className="font-semibold text-secondary group-hover:text-accent-teal transition-colors line-clamp-1 flex-1 cursor-pointer"
             >
               {job.title}
             </h3>
-            <div className="flex items-center gap-1" onPointerDown={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1" onPointerDown={e => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"

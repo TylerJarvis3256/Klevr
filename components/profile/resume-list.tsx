@@ -44,7 +44,7 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
     try {
       await onDelete(id)
       toast.success(`${fileName} deleted successfully`)
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete resume')
     } finally {
       setDeletingId(null)
@@ -55,7 +55,7 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
     setDownloadingId(id)
     try {
       await onDownload(id)
-    } catch (error) {
+    } catch {
       toast.error('Failed to download resume')
     } finally {
       setDownloadingId(null)
@@ -67,12 +67,13 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
     const k = 1024
     const sizes = ['B', 'KB', 'MB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 10) / 10 + ' ' + sizes[i]
+    return Math.round((bytes / Math.pow(k, i)) * 10) / 10 + ' ' + sizes[i]
   }
 
   const getFileTypeLabel = (mimeType: string): string => {
     if (mimeType === 'application/pdf') return 'PDF'
-    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'DOCX'
+    if (mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      return 'DOCX'
     if (mimeType === 'text/plain') return 'Text'
     return 'File'
   }
@@ -101,7 +102,7 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
 
   return (
     <div className="space-y-4">
-      {resumes.map((resume) => (
+      {resumes.map(resume => (
         <div
           key={resume.id}
           className="border border-secondary/10 rounded-2xl p-4 bg-white hover:border-accent-teal/30 transition-colors"
@@ -115,9 +116,7 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
             {/* Content */}
             <div className="flex-1 min-w-0">
               {/* File name */}
-              <h4 className="font-medium text-secondary truncate mb-1">
-                {resume.file_name}
-              </h4>
+              <h4 className="font-medium text-secondary truncate mb-1">{resume.file_name}</h4>
 
               {/* Metadata */}
               <div className="flex flex-wrap items-center gap-2 text-xs text-secondary/70 mb-2">
@@ -152,9 +151,7 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
 
               {/* Error Message */}
               {resume.parsing_error && (
-                <p className="text-xs text-red-600 mt-2">
-                  {resume.parsing_error}
-                </p>
+                <p className="text-xs text-red-600 mt-2">{resume.parsing_error}</p>
               )}
             </div>
 
@@ -197,11 +194,11 @@ export function ResumeList({ resumes, onDelete, onDownload, isLoading }: ResumeL
                   <AlertDialogHeader>
                     <AlertDialogTitle>Delete Resume?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      Are you sure you want to delete "{resume.file_name}"?
+                      Are you sure you want to delete &quot;{resume.file_name}&quot;?
                       <br />
                       <br />
-                      <strong>Note:</strong> This will only remove the file reference.
-                      Your profile data (education, experience, projects) will be preserved.
+                      <strong>Note:</strong> This will only remove the file reference. Your profile
+                      data (education, experience, projects) will be preserved.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>

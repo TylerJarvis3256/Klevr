@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Plus, Trash2, GripVertical } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { Education } from '@prisma/client'
+import type { Education } from '@/types/models'
 
 interface EducationEditorProps {
   education: Education[]

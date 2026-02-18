@@ -55,8 +55,8 @@ export function CompanyResearch({ application, company, researchTask }: CompanyR
         router.refresh()
         setIsGenerating(false)
       }, 2000)
-    } catch (error: any) {
-      toast.error(error.message)
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'An error occurred')
       setIsGenerating(false)
     }
   }
@@ -79,9 +79,7 @@ export function CompanyResearch({ application, company, researchTask }: CompanyR
     return (
       <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
         <div className="text-center py-12">
-          <h3 className="font-lora text-xl font-semibold text-secondary mb-2">
-            Company Research
-          </h3>
+          <h3 className="font-lora text-xl font-semibold text-secondary mb-2">Company Research</h3>
           <p className="text-secondary/70 mb-6">
             Get AI-generated insights about {company} to prepare for your application.
           </p>
@@ -164,7 +162,13 @@ export function CompanyResearch({ application, company, researchTask }: CompanyR
 
       {/* Regenerate button */}
       <div className="flex justify-end">
-        <Button onClick={handleGenerate} disabled={isGenerating} variant="outline" size="sm" className="gap-2">
+        <Button
+          onClick={handleGenerate}
+          disabled={isGenerating}
+          variant="outline"
+          size="sm"
+          className="gap-2"
+        >
           {isGenerating ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -2,7 +2,15 @@
 
 import { useState } from 'react'
 import { Application, ApplicationStatus, Job, FitBucket } from '@prisma/client'
-import { DndContext, DragEndEvent, DragOverlay, closestCorners, useDraggable, useDroppable } from '@dnd-kit/core'
+import {
+  DndContext,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+  closestCorners,
+  useDraggable,
+  useDroppable,
+} from '@dnd-kit/core'
 import { ApplicationCard } from './application-card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useRouter } from 'next/navigation'
@@ -100,7 +108,11 @@ export function Pipeline({ applications, searchQuery, fitFilter, statusFilter }:
     if (statusFilter) {
       if (statusFilter === 'ACTIVE' && app.status === ApplicationStatus.REJECTED) {
         return false
-      } else if (statusFilter !== 'ALL' && statusFilter !== 'ACTIVE' && app.status !== statusFilter) {
+      } else if (
+        statusFilter !== 'ALL' &&
+        statusFilter !== 'ACTIVE' &&
+        app.status !== statusFilter
+      ) {
         return false
       }
     }
@@ -118,8 +130,8 @@ export function Pipeline({ applications, searchQuery, fitFilter, statusFilter }:
   )
 
   // Handle drag start
-  const handleDragStart = (event: any) => {
-    setActiveId(event.active.id)
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string)
   }
 
   // Handle drag end
@@ -149,15 +161,13 @@ export function Pipeline({ applications, searchQuery, fitFilter, statusFilter }:
 
       toast.success('Application status updated')
       router.refresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to update status')
     }
   }
 
   // Find active application for drag overlay
-  const activeApplication = activeId
-    ? applications.find(app => app.id === activeId)
-    : null
+  const activeApplication = activeId ? applications.find(app => app.id === activeId) : null
 
   return (
     <>

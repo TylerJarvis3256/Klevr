@@ -6,9 +6,17 @@ import type { SemanticJDAnalysis } from './semantic-analyzer'
 
 // ─── Types ───────────────────────────────────────────
 
-export type GovernableContent = GeneratedResumeContent & {
+export interface GovernableProject {
+  name: string
+  description: string
+  technologies: string[]
+  bullets?: string[]
+}
+
+export type GovernableContent = Omit<GeneratedResumeContent, 'projects'> & {
   lead?: string
   section_order?: string[]
+  projects: GovernableProject[]
 }
 
 export interface GovernorResult {
@@ -67,7 +75,7 @@ export function consolidateRedundantProjects(
     const project = content.projects[pi]
     const projName = project.name.toLowerCase()
     const projTech = project.technologies || []
-    const projBullets = (project as any).bullets as string[] | undefined
+    const projBullets = project.bullets
 
     // Find matching experiences
     const matches: Array<{ expIdx: number; score: number }> = []
@@ -223,7 +231,7 @@ export function tightenAllBullets(content: GovernableContent): GovernorAction[] 
 
   if (content.projects) {
     for (const proj of content.projects) {
-      const projBullets = (proj as any).bullets as string[] | undefined
+      const projBullets = proj.bullets
       if (!projBullets) continue
       for (let i = 0; i < projBullets.length; i++) {
         const original = projBullets[i]
@@ -345,7 +353,7 @@ export function condenseLowPriorityEntry(
   if (content.projects) {
     for (let i = 0; i < content.projects.length; i++) {
       const proj = content.projects[i]
-      const projBullets = (proj as any).bullets as string[] | undefined
+      const projBullets = proj.bullets
       const score =
         analysis.project_scores.find(
           s => content.projects![s.index]?.name.toLowerCase() === proj.name.toLowerCase()
@@ -400,10 +408,10 @@ export function condenseLowPriorityEntry(
 
   if (target.type === 'project' && content.projects) {
     const proj = content.projects[target.index]
-    const projBullets = (proj as any).bullets as string[]
+    const projBullets = proj.bullets!
     const kept = pickTopBullets(projBullets, minBullets)
     const removed = projBullets.length - minBullets
-    ;(proj as any).bullets = kept
+    proj.bullets = kept
     return [
       {
         step: 'CONDENSE',
@@ -460,7 +468,7 @@ export function pruneLowestScoredEntry(
   if (content.projects) {
     for (let i = 0; i < content.projects.length; i++) {
       const proj = content.projects[i]
-      const projBullets = (proj as any).bullets as string[] | undefined
+      const projBullets = proj.bullets
       const score =
         analysis.project_scores.find(
           s => content.projects![s.index]?.name.toLowerCase() === proj.name.toLowerCase()
@@ -482,7 +490,7 @@ export function pruneLowestScoredEntry(
     const bullets =
       entry.type === 'experience'
         ? (content.experience?.[entry.index]?.bullets ?? [])
-        : (((content.projects?.[entry.index] as any)?.bullets as string[] | undefined) ?? [])
+        : (content.projects?.[entry.index]?.bullets ?? [])
     if (bullets.some(b => hasAnyMetric(b))) {
       entry.score += 100
     }
@@ -529,11 +537,11 @@ export function pruneLowestScoredEntry(
 
     if (entry.type === 'project' && content.projects) {
       const proj = content.projects[entry.index]
-      const projBullets = (proj as any).bullets as string[] | undefined
+      const projBullets = proj.bullets
       if (entry.hasBullets && projBullets) {
         // Pass 1: Remove bullets
         const bulletCount = projBullets.length
-        ;(proj as any).bullets = []
+        proj.bullets = []
         actions.push({
           step: 'C',
           action: `Removed ${bulletCount} bullets from project "${entry.name}" (score: ${entry.score})`,
@@ -590,7 +598,7 @@ export function reduceBulletDensity(content: GovernableContent, maxBullets = 4):
 
   if (content.projects) {
     for (const proj of content.projects) {
-      const projBullets = (proj as any).bullets as string[] | undefined
+      const projBullets = proj.bullets
       if (!projBullets || projBullets.length <= maxBullets) continue
 
       const scored = projBullets.map((text: string, idx: number) => ({
@@ -607,7 +615,7 @@ export function reduceBulletDensity(content: GovernableContent, maxBullets = 4):
         .slice(0, maxBullets)
         .sort((a: { idx: number }, b: { idx: number }) => a.idx - b.idx)
       const removed = projBullets.length - maxBullets
-      ;(proj as any).bullets = kept.map((b: { text: string }) => b.text)
+      proj.bullets = kept.map((b: { text: string }) => b.text)
 
       actions.push({
         step: 'D',
@@ -715,7 +723,7 @@ function buildResult(
   }
   if (content.projects) {
     for (const proj of content.projects) {
-      const projBullets = (proj as any).bullets as string[] | undefined
+      const projBullets = proj.bullets
       if (projBullets) {
         for (const b of projBullets) {
           if (hasAnyMetric(b)) metricsInFinalContent++
@@ -1004,10 +1012,10 @@ function attemptReExpansion(
     if (governed.projects && original.projects) {
       for (let i = 0; i < governed.projects.length; i++) {
         const govProj = governed.projects[i]
-        const govBullets = ((govProj as any).bullets as string[] | undefined) ?? []
+        const govBullets = govProj.bullets ?? []
         const origProj = original.projects.find(p => p.name === govProj.name)
         if (!origProj) continue
-        const origBullets = ((origProj as any).bullets as string[] | undefined) ?? []
+        const origBullets = origProj.bullets ?? []
 
         const entryScore = analysis.project_scores.find(s => s.index === i)?.score ?? 50
         const missing = origBullets.filter(b => !govBullets.includes(b))
@@ -1048,11 +1056,11 @@ function attemptReExpansion(
     } else if (best.sectionType === 'project' && governed.projects) {
       const proj = governed.projects.find(p => p.name === best.entryLabel)
       if (proj) {
-        const projBullets = (proj as any).bullets as string[] | undefined
+        const projBullets = proj.bullets
         if (projBullets) {
           projBullets.push(best.bullet)
         } else {
-          ;(proj as any).bullets = [best.bullet]
+          proj.bullets = [best.bullet]
         }
       }
     }
@@ -1068,7 +1076,7 @@ function attemptReExpansion(
       } else if (best.sectionType === 'project' && governed.projects) {
         const proj = governed.projects.find(p => p.name === best.entryLabel)
         if (proj) {
-          const projBullets = (proj as any).bullets as string[]
+          const projBullets = proj.bullets!
           projBullets.pop()
         }
       }

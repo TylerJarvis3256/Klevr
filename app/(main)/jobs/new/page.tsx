@@ -39,15 +39,10 @@ const jobSchema = z.object({
   title: z.string().min(1, 'Job title is required'),
   company: z.string().min(1, 'Company name is required'),
   location: z.string().optional(),
-  job_source: z.enum([
-    'LINKEDIN',
-    'INDEED',
-    'GLASSDOOR',
-    'HANDSHAKE',
-    'COMPANY_WEBSITE',
-    'REFERRAL',
-    'OTHER',
-  ], { message: 'Please select where you found this job' }),
+  job_source: z.enum(
+    ['LINKEDIN', 'INDEED', 'GLASSDOOR', 'HANDSHAKE', 'COMPANY_WEBSITE', 'REFERRAL', 'OTHER'],
+    { message: 'Please select where you found this job' }
+  ),
   job_url: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   job_description_raw: z.string().min(10, 'Job description is required'),
 })
@@ -108,7 +103,7 @@ export default function NewJobPage() {
       <div className="mb-8">
         <h1 className="font-lora text-4xl font-bold text-secondary mb-2">Add a Job</h1>
         <p className="text-secondary/80">
-          Paste the job description and we'll assess how well it fits your profile.
+          Paste the job description and we&apos;ll assess how well it fits your profile.
         </p>
       </div>
 
@@ -170,7 +165,7 @@ export default function NewJobPage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {JOB_SOURCES.map((source) => (
+                      {JOB_SOURCES.map(source => (
                         <SelectItem key={source.value} value={source.value}>
                           {source.label}
                         </SelectItem>
@@ -195,9 +190,7 @@ export default function NewJobPage() {
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Link to the job posting (optional)
-                  </FormDescription>
+                  <FormDescription>Link to the job posting (optional)</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -216,20 +209,14 @@ export default function NewJobPage() {
                       {...field}
                     />
                   </FormControl>
-                  <FormDescription>
-                    Copy and paste the complete job description
-                  </FormDescription>
+                  <FormDescription>Copy and paste the complete job description</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
             <div className="flex justify-end gap-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => router.push('/jobs')}
-              >
+              <Button type="button" variant="outline" onClick={() => router.push('/jobs')}>
                 Cancel
               </Button>
               <Button type="submit" disabled={form.formState.isSubmitting}>

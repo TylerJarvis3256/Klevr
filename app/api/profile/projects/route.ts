@@ -12,14 +12,14 @@ const createProjectSchema = z.object({
     .string()
     .nullable()
     .optional()
-    .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
+    .refine(val => !val || val === '' || z.string().url().safeParse(val).success, {
       message: 'Must be a valid URL',
     }),
   github_link: z
     .string()
     .nullable()
     .optional()
-    .refine((val) => !val || val === '' || z.string().url().safeParse(val).success, {
+    .refine(val => !val || val === '' || z.string().url().safeParse(val).success, {
       message: 'Must be a valid URL',
     }),
   display_order: z.number().int().optional(),
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    console.log('POST /api/profile/projects body:', JSON.stringify(body, null, 2))
+    console.warn('POST /api/profile/projects body:', JSON.stringify(body, null, 2))
 
     const parsed = createProjectSchema.safeParse(body)
 

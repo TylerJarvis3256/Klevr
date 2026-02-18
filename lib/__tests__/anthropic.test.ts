@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import type Anthropic from '@anthropic-ai/sdk'
+import type { RateLimiter } from '@/lib/rate-limiter'
 
 // Mock the rate limiter
 vi.mock('@/lib/rate-limiter', () => ({
@@ -9,10 +11,10 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 // Mock the Anthropic SDK — default export must be a constructor
 vi.mock('@anthropic-ai/sdk', () => {
-  const Anthropic = function () {
+  const AnthropicMock = function () {
     return { messages: { create: vi.fn() } }
-  } as any
-  Anthropic.APIError = class APIError extends Error {
+  } as unknown as typeof Anthropic
+  ;(AnthropicMock as unknown as Record<string, unknown>).APIError = class APIError extends Error {
     status: number
     constructor(status: number, message: string) {
       super(message)
@@ -20,7 +22,7 @@ vi.mock('@anthropic-ai/sdk', () => {
       this.name = 'APIError'
     }
   }
-  return { default: Anthropic }
+  return { default: AnthropicMock }
 })
 
 import { callAnthropic, parseAnthropicJson, ANTHROPIC_MODELS } from '@/lib/anthropic'
@@ -39,7 +41,7 @@ describe('callAnthropic', () => {
     // Reset to allow by default
     vi.mocked(getUserRateLimiter).mockReturnValue({
       removeTokens: vi.fn().mockResolvedValue(true),
-    } as any)
+    } as unknown as RateLimiter)
   })
 
   it('executes the function when rate limit allows', async () => {
@@ -50,7 +52,7 @@ describe('callAnthropic', () => {
   it('throws when rate limit is exceeded', async () => {
     vi.mocked(getUserRateLimiter).mockReturnValue({
       removeTokens: vi.fn().mockResolvedValue(false),
-    } as any)
+    } as unknown as RateLimiter)
 
     await expect(callAnthropic('user-1', async () => 'ok')).rejects.toThrow('Rate limit exceeded')
   })
@@ -58,7 +60,7 @@ describe('callAnthropic', () => {
   it('calls onRateLimit callback when rate limited', async () => {
     vi.mocked(getUserRateLimiter).mockReturnValue({
       removeTokens: vi.fn().mockResolvedValue(false),
-    } as any)
+    } as unknown as RateLimiter)
     const onRateLimit = vi.fn()
 
     await expect(callAnthropic('user-1', async () => 'ok', { onRateLimit })).rejects.toThrow(
@@ -88,13 +90,17 @@ describe('callAnthropic', () => {
 describe('parseAnthropicJson', () => {
   it('parses valid JSON from Anthropic response', () => {
     const response = createMockAnthropicResponse('{"name": "test", "score": 85}')
-    const result = parseAnthropicJson<{ name: string; score: number }>(response as any)
+    const result = parseAnthropicJson<{ name: string; score: number }>(
+      response as unknown as Anthropic.Message
+    )
     expect(result).toEqual({ name: 'test', score: 85 })
   })
 
   it('handles nested JSON objects', () => {
     const response = createMockAnthropicResponse('{"data": {"items": [1, 2, 3]}}')
-    const result = parseAnthropicJson<{ data: { items: number[] } }>(response as any)
+    const result = parseAnthropicJson<{ data: { items: number[] } }>(
+      response as unknown as Anthropic.Message
+    )
     expect(result.data.items).toEqual([1, 2, 3])
   })
 
@@ -110,7 +116,7 @@ describe('parseAnthropicJson', () => {
       usage: { input_tokens: 100, output_tokens: 0 },
     }
 
-    expect(() => parseAnthropicJson(response as any)).toThrow(
+    expect(() => parseAnthropicJson(response as unknown as Anthropic.Message)).toThrow(
       'No text content in Anthropic response'
     )
   })
@@ -127,6 +133,8 @@ describe('parseAnthropicJson', () => {
       usage: { input_tokens: 100, output_tokens: 50 },
     }
 
-    expect(() => parseAnthropicJson(response as any)).toThrow('Invalid JSON from Anthropic')
+    expect(() => parseAnthropicJson(response as unknown as Anthropic.Message)).toThrow(
+      'Invalid JSON from Anthropic'
+    )
   })
 })

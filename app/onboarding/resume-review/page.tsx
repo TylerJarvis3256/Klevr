@@ -26,7 +26,7 @@ export default function OnboardingResumeReviewPage() {
         if (data.profile?.parsed_resume) {
           setParsedResume(data.profile.parsed_resume)
         }
-      } catch (error) {
+      } catch {
         toast.error('Failed to load resume. Please go back and parse again.')
       } finally {
         setIsLoading(false)
@@ -51,7 +51,7 @@ export default function OnboardingResumeReviewPage() {
 
       toast.success('Resume confirmed! Welcome to Klevr.')
       router.push('/dashboard')
-    } catch (error) {
+    } catch {
       toast.error('Failed to confirm resume. Please try again.')
     }
   }
@@ -101,10 +101,7 @@ export default function OnboardingResumeReviewPage() {
           />
 
           <div className="mt-6">
-            <Button
-              variant="secondary"
-              onClick={() => router.push('/onboarding/resume-upload')}
-            >
+            <Button variant="secondary" onClick={() => router.push('/onboarding/resume-upload')}>
               Back
             </Button>
           </div>

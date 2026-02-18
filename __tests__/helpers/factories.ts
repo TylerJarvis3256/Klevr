@@ -50,7 +50,6 @@ export function createProfile(overrides: Record<string, unknown> = {}) {
     preferred_locations: ['Remote'],
     skills: ['TypeScript', 'React', 'Node.js'],
     resume_deleted_at: null,
-    migrated_to_structured: false,
     created_at: FIXED_DATE,
     updated_at: FIXED_DATE,
     ...overrides,

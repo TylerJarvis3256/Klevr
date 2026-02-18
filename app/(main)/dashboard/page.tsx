@@ -56,7 +56,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           <h1 className="font-lora text-4xl font-bold text-secondary mb-2">
             Welcome back, {firstName}!
           </h1>
-          <p className="text-secondary/80">Here's your application overview</p>
+          <p className="text-secondary/80">Here&apos;s your application overview</p>
         </div>
         <Link href="/jobs/new">
           <Button size="lg" variant="cta">

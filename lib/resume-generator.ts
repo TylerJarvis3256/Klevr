@@ -19,7 +19,7 @@ export async function generateResumeContent(
   userId: string,
   userResume: ParsedResume,
   job: Job,
-  jobParsed: any,
+  jobParsed: Record<string, unknown>,
   profileSkills?: string[],
   userProjects?: Array<{
     name: string
