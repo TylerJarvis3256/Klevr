@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Lint, Typecheck & Build
+    runs-on: ubuntu-latest
+
+    # Placeholder values so prisma generate (postinstall) and next build
+    # can run without real credentials. Never commit actual secrets here —
+    # production values live in Vercel environment variables.
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      AUTH0_SECRET: ci-placeholder
+      AUTH0_BASE_URL: http://localhost:3000
+      AUTH0_ISSUER_BASE_URL: https://placeholder.auth0.com
+      AUTH0_DOMAIN: placeholder.auth0.com
+      AUTH0_CLIENT_ID: ci-placeholder
+      AUTH0_CLIENT_SECRET: ci-placeholder
+      OPENAI_API_KEY: sk-ci-placeholder
+      ANTHROPIC_API_KEY: sk-ant-ci-placeholder
+      AWS_ACCESS_KEY_ID: ci-placeholder
+      AWS_SECRET_ACCESS_KEY: ci-placeholder
+      AWS_REGION: us-east-1
+      AWS_S3_BUCKET: ci-placeholder
+      INNGEST_EVENT_KEY: ci-placeholder
+      INNGEST_SIGNING_KEY: ci-placeholder
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+      RESEND_API_KEY: ci-placeholder
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
