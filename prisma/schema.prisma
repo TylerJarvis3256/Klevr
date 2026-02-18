@@ -33,24 +33,24 @@ model Application {
   user_id                  String
   job_id                   String
   status                   ApplicationStatus   @default(PLANNED)
-  score_count              Int                 @default(1)
   applied_at               DateTime?
   fit_bucket               FitBucket?
   fit_score                Float?
   score_explanation        String?
   matching_skills          String[]
   missing_skills           String[]
-  missing_required_skills  String[]            @default([])
-  missing_preferred_skills String[]            @default([])
   company_research         Json?
   created_at               DateTime            @default(now())
   updated_at               DateTime            @updatedAt
+  missing_preferred_skills String[]            @default([])
+  missing_required_skills  String[]            @default([])
+  score_count              Int                 @default(1)
+  ActivityLog              ActivityLog[]
   AiTask                   AiTask[]
   Job                      Job                 @relation(fields: [job_id], references: [id], onDelete: Cascade)
   User                     User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
   GeneratedDocument        GeneratedDocument[]
   Note                     Note[]
-  ActivityLog              ActivityLog[]
 
   @@index([created_at])
   @@index([fit_bucket])
@@ -60,18 +60,24 @@ model Application {
 }
 
 model GeneratedDocument {
-  id              String       @id @default(cuid())
-  application_id  String
-  type            DocumentType
-  storage_url     String
-  display_name    String?
-  structured_data Json?
-  prompt_version  String
-  model_used      String
-  tokens_used     Int?
-  deleted_at      DateTime?
-  created_at      DateTime     @default(now())
-  Application     Application  @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  id               String       @id @default(cuid())
+  application_id   String
+  type             DocumentType
+  storage_url      String
+  structured_data  Json?
+  prompt_version   String
+  model_used       String
+  tokens_used      Int?
+  created_at       DateTime     @default(now())
+  deleted_at       DateTime?
+  display_name     String?
+  allow_two_pages  Boolean      @default(false)
+  page_count       Int?
+  render_provider  String?
+  tailoring_plan   Json?
+  template_id      String?
+  template_version String?      @default("v1.0.0")
+  Application      Application  @relation(fields: [application_id], references: [id], onDelete: Cascade)
 
   @@index([application_id])
   @@index([created_at])
@@ -79,25 +85,32 @@ model GeneratedDocument {
 }
 
 model Job {
-  id                     String        @id @default(cuid())
+  id                     String          @id @default(cuid())
   user_id                String
   title                  String
   company                String
   location               String?
   job_url                String?
-  job_source             JobSource?
-  adzuna_id              String?       @unique
   job_description_raw    String
   job_description_parsed Json?
-  created_at             DateTime      @default(now())
-  updated_at             DateTime      @updatedAt
+  created_at             DateTime        @default(now())
+  updated_at             DateTime        @updatedAt
+  job_source             JobSource?
+  adzuna_id              String?         @unique
+  final_source_url       String?
+  scraping_attempted_at  DateTime?
+  scraping_completed_at  DateTime?
+  scraping_error         String?
+  scraping_method        String?
+  scraping_status        ScrapingStatus? @default(PENDING)
   Application            Application[]
-  User                   User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  User                   User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([adzuna_id])
   @@index([company])
   @@index([created_at])
   @@index([user_id])
+  @@index([scraping_status])
 }
 
 model Note {
@@ -122,14 +135,15 @@ model Profile {
   resume_file_url            String?
   resume_file_name           String?
   resume_uploaded_at         DateTime?
-  resume_deleted_at          DateTime?
   parsed_resume              Json?
   parsed_resume_confirmed_at DateTime?
   job_types                  String[]
   preferred_locations        String[]
-  skills                     String[]  @default([])
   created_at                 DateTime  @default(now())
   updated_at                 DateTime  @updatedAt
+  skills                     String[]  @default([])
+  resume_deleted_at          DateTime?
+  migrated_to_structured     Boolean   @default(false)
   User                       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
@@ -162,10 +176,100 @@ model Project {
   display_order Int      @default(0)
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+  key_metrics   String?
+  Bullet        Bullet[]
   User          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([display_order])
+}
+
+model Education {
+  id                  String   @id @default(cuid())
+  user_id             String
+  school              String
+  degree              String
+  major               String?
+  graduation_date     String
+  gpa                 String?
+  location            String?
+  relevant_coursework String[] @default([])
+  honors              String[] @default([])
+  display_order       Int      @default(0)
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+  User                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([display_order])
+}
+
+model JobExperience {
+  id            String   @id @default(cuid())
+  user_id       String
+  title         String
+  company       String
+  location      String?
+  start_date    String
+  end_date      String?
+  is_current    Boolean  @default(false)
+  description   String?
+  display_order Int      @default(0)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  key_metrics   String?
+  Bullet        Bullet[]
+  User          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([display_order])
+}
+
+model Bullet {
+  id            String         @id @default(cuid())
+  user_id       String
+  experience_id String?
+  project_id    String?
+  text          String
+  tags          String[]       @default([])
+  priority      Int            @default(0)
+  is_favorite   Boolean        @default(false)
+  ai_category   String?
+  metrics       Json?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  JobExperience JobExperience? @relation(fields: [experience_id], references: [id], onDelete: Cascade)
+  Project       Project?       @relation(fields: [project_id], references: [id], onDelete: Cascade)
+  User          User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([experience_id])
+  @@index([project_id])
+  @@index([ai_category])
+  @@index([is_favorite])
+}
+
+model ResumeUpload {
+  id            String    @id @default(cuid())
+  user_id       String
+  file_name     String
+  file_url      String?
+  file_type     String
+  file_size     Int
+  uploaded_at   DateTime  @default(now())
+  parsed_at     DateTime?
+  parsed_resume Json?
+  parsing_error String?
+  deleted_at    DateTime?
+  source        String    @default("PROFILE")
+  storage_url   String?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  User          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+  @@index([deleted_at])
+  @@index([uploaded_at])
 }
 
 model ActivityLog {
@@ -175,8 +279,8 @@ model ActivityLog {
   type           ActivityType
   metadata       Json?
   created_at     DateTime     @default(now())
-  User           User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   Application    Application? @relation(fields: [application_id], references: [id], onDelete: Cascade)
+  User           User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([application_id])
   @@index([user_id])
@@ -185,95 +289,26 @@ model ActivityLog {
 }
 
 model User {
-  id           String         @id @default(cuid())
-  auth0_id     String         @unique
-  email        String         @unique
-  created_at   DateTime       @default(now())
-  updated_at   DateTime       @updatedAt
-  AiTask       AiTask[]
-  Application  Application[]
-  Job          Job[]
-  Profile      Profile?
-  Project      Project[]
-  ActivityLog  ActivityLog[]
-  SavedSearch  SavedSearch[]
-  Notification Notification[]
+  id            String          @id @default(cuid())
+  auth0_id      String          @unique
+  email         String          @unique
+  created_at    DateTime        @default(now())
+  updated_at    DateTime        @updatedAt
+  ActivityLog   ActivityLog[]
+  AiTask        AiTask[]
+  Application   Application[]
+  Bullet        Bullet[]
+  Education     Education[]
+  Job           Job[]
+  JobExperience JobExperience[]
+  Notification  Notification[]
+  Profile       Profile?
+  Project       Project[]
+  ResumeUpload  ResumeUpload[]
+  SavedSearch   SavedSearch[]
 
   @@index([auth0_id])
   @@index([email])
-}
-
-enum AiTaskStatus {
-  PENDING
-  RUNNING
-  SUCCEEDED
-  FAILED
-}
-
-enum AiTaskType {
-  JOB_SCORING
-  RESUME_GENERATION
-  COVER_LETTER_GENERATION
-  COMPANY_RESEARCH
-}
-
-enum ApplicationStatus {
-  PLANNED
-  APPLIED
-  INTERVIEW
-  OFFER
-  REJECTED
-}
-
-enum DocumentType {
-  RESUME
-  COVER_LETTER
-}
-
-enum FitBucket {
-  EXCELLENT
-  GOOD
-  FAIR
-  POOR
-}
-
-enum JobSource {
-  LINKEDIN
-  INDEED
-  GLASSDOOR
-  HANDSHAKE
-  COMPANY_WEBSITE
-  REFERRAL
-  ADZUNA
-  OTHER
-}
-
-enum ActivityType {
-  STATUS_CHANGED
-  JOB_CREATED
-  JOB_SCORING_STARTED
-  JOB_SCORING_COMPLETED
-  RESUME_GENERATED
-  COVER_LETTER_GENERATED
-  COMPANY_RESEARCH_COMPLETED
-  NOTE_ADDED
-  NOTE_EDITED
-  DOCUMENT_DELETED
-  JOB_DISCOVERED
-  SEARCH_PERFORMED
-  SEARCH_SAVED
-  SAVED_SEARCH_RUN
-}
-
-enum SavedSearchFrequency {
-  DAILY
-  WEEKLY
-  MONTHLY
-}
-
-enum NotificationType {
-  SAVED_SEARCH_NEW_JOBS
-  SYSTEM_ANNOUNCEMENT
 }
 
 model SavedSearch {
@@ -347,4 +382,85 @@ model AdzunaSearchCache {
   created_at DateTime @default(now())
 
   @@index([cache_key, expires_at])
+}
+
+enum AiTaskStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum AiTaskType {
+  JOB_SCORING
+  RESUME_GENERATION
+  COVER_LETTER_GENERATION
+  COMPANY_RESEARCH
+}
+
+enum ApplicationStatus {
+  PLANNED
+  APPLIED
+  INTERVIEW
+  OFFER
+  REJECTED
+}
+
+enum DocumentType {
+  RESUME
+  COVER_LETTER
+}
+
+enum FitBucket {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum JobSource {
+  LINKEDIN
+  INDEED
+  GLASSDOOR
+  HANDSHAKE
+  COMPANY_WEBSITE
+  REFERRAL
+  OTHER
+  ADZUNA
+}
+
+enum ActivityType {
+  STATUS_CHANGED
+  JOB_CREATED
+  JOB_SCORING_STARTED
+  JOB_SCORING_COMPLETED
+  RESUME_GENERATED
+  COVER_LETTER_GENERATED
+  COMPANY_RESEARCH_COMPLETED
+  NOTE_ADDED
+  NOTE_EDITED
+  DOCUMENT_DELETED
+  JOB_DISCOVERED
+  SEARCH_PERFORMED
+  SEARCH_SAVED
+  SAVED_SEARCH_RUN
+}
+
+enum SavedSearchFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+enum NotificationType {
+  SAVED_SEARCH_NEW_JOBS
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum ScrapingStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+  SKIPPED
 }

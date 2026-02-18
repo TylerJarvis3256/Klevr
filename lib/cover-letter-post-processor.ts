@@ -35,6 +35,25 @@ const AI_CLICHES = [
   'take my career to the next level',
   'align perfectly',
   'aligns perfectly',
+  'as a dedicated student',
+  'as a dedicated professional',
+  'as a highly motivated',
+  'my skills make me',
+  'my experience makes me',
+  'i believe i would be',
+  'i am confident that i',
+  'i am writing to express',
+  'i am writing to apply',
+  'i would be a great',
+  'i would be an ideal',
+  'an ideal candidate',
+  'strong candidate for',
+  "in today's fast-paced world",
+  "in today's competitive",
+  'look no further',
+  'i am the ideal candidate',
+  'the ideal candidate',
+  'the perfect candidate',
 ]
 
 const FLOWERY_ADJECTIVES = [
@@ -93,6 +112,10 @@ function joinSentences(sentences: string[]): string {
 
 function startsWithI(sentence: string): boolean {
   return /^I\s/.test(sentence.trim())
+}
+
+function startsWithIMy(sentence: string): boolean {
+  return /^(I\s|My\s)/.test(sentence.trim())
 }
 
 // ---- Rule Processors ----
@@ -226,24 +249,348 @@ function fixAiMetaLanguage(text: string, fixes: string[]): string {
   return joinSentences(filtered)
 }
 
+// ---- Vague Metric Detection ----
+
+const VAGUE_QUALIFIERS = [
+  'significant',
+  'significantly',
+  'substantial',
+  'substantially',
+  'considerable',
+  'considerably',
+  'major',
+  'notable',
+  'marked',
+  'improved',
+  'enhanced',
+  'dramatic',
+  'dramatically',
+]
+
+// Pattern: vague qualifier followed by common result nouns
+const VAGUE_RESULT_PATTERN = new RegExp(
+  `\\b(${VAGUE_QUALIFIERS.join('|')})\\s+(reduction|improvement|increase|decrease|boost|gain|savings|impact|growth|speedup|drop)`,
+  'gi'
+)
+
+function fixVagueMetrics(text: string, metricsToFeature: string[], fixes: string[]): string {
+  if (metricsToFeature.length === 0) return text
+
+  // Find metrics not already present in the text
+  const missingMetrics = metricsToFeature.filter(m => !text.includes(m))
+  if (missingMetrics.length === 0) return text
+
+  let result = text
+  let replaced = false
+
+  // Try to replace "vague qualifier + result noun" with "metric + result noun"
+  result = result.replace(VAGUE_RESULT_PATTERN, (match, _qualifier, noun) => {
+    // Pick the first missing metric to substitute
+    const metric = missingMetrics.shift()
+    if (metric) {
+      replaced = true
+      return `${metric} ${noun}`
+    }
+    return match
+  })
+
+  // Also catch standalone vague qualifiers near result-like contexts
+  // Pattern: "resulting in [vague] ..." or "led to [vague] ..."
+  if (!replaced && missingMetrics.length > 0) {
+    const standalonePattern = new RegExp(
+      `(resulting in|led to|achieved|delivered|produced)\\s+(a\\s+)?(${VAGUE_QUALIFIERS.join('|')})`,
+      'gi'
+    )
+    result = result.replace(standalonePattern, (match, prefix, article, _qualifier) => {
+      const metric = missingMetrics.shift()
+      if (metric) {
+        replaced = true
+        return `${prefix} ${article || ''}${metric}`
+      }
+      return match
+    })
+  }
+
+  if (replaced) {
+    fixes.push('Replaced vague qualifier with exact metric from profile')
+  }
+
+  return result
+}
+
+// ---- Hyphen Sentence Break Detection ----
+
+// Words that commonly start independent clauses
+const CLAUSE_STARTERS = new Set([
+  'a',
+  'the',
+  'i',
+  'it',
+  'this',
+  'that',
+  'which',
+  'and',
+  'but',
+  'or',
+  'so',
+  'my',
+  'we',
+  'they',
+  'he',
+  'she',
+  'our',
+  'their',
+  'these',
+  'those',
+  'there',
+  'when',
+  'while',
+  'since',
+  'after',
+  'before',
+])
+
+function fixHyphenSentenceBreaks(text: string, fixes: string[]): string {
+  // Split on ' - ' pattern
+  const parts = text.split(' - ')
+  if (parts.length <= 1) return text
+
+  let result = parts[0]
+  let replaced = false
+
+  for (let i = 1; i < parts.length; i++) {
+    const left = result
+    const right = parts[i]
+
+    // Count words on each side
+    const leftWords = left.trim().split(/\s+/)
+    const rightWords = right.trim().split(/\s+/)
+
+    // Check if both sides look like independent clauses:
+    // a) Both have 4+ words
+    // b) Left side ends with a word (not just a number)
+    // c) Right side starts with a clause-starter word
+    const leftHasEnoughWords = leftWords.length >= 4
+    const rightHasEnoughWords = rightWords.length >= 4
+    const leftEndsWithWord =
+      leftWords.length > 0 && /^[a-zA-Z]/.test(leftWords[leftWords.length - 1])
+    const rightStartWord = rightWords.length > 0 ? rightWords[0].toLowerCase() : ''
+    const rightStartsWithClauseStarter = CLAUSE_STARTERS.has(rightStartWord)
+
+    if (
+      leftHasEnoughWords &&
+      rightHasEnoughWords &&
+      leftEndsWithWord &&
+      rightStartsWithClauseStarter
+    ) {
+      // Replace with period and capitalize
+      const capitalized = right.charAt(0).toUpperCase() + right.slice(1)
+      result = result.trimEnd() + '. ' + capitalized
+      replaced = true
+    } else {
+      // Preserve the original ' - '
+      result = result + ' - ' + right
+    }
+  }
+
+  if (replaced) {
+    fixes.push('Replaced hyphen sentence break with period')
+  }
+
+  return result
+}
+
+// ---- Mantra Slogan Detection ----
+
+function fixMantraSlogans(text: string, fixes: string[]): string {
+  const sentences = splitSentences(text)
+  let filtered = [...sentences]
+  let fixed = false
+
+  // Pattern 1: Verb triads - "Analyze, Automate, Accelerate"
+  const verbTriadPattern = /\b([A-Z][a-z]+),\s+([A-Z][a-z]+),?\s+(?:and\s+)?([A-Z][a-z]+)\b/
+  filtered = filtered.filter(sentence => {
+    if (verbTriadPattern.test(sentence)) {
+      fixed = true
+      return false
+    }
+    return true
+  })
+
+  // Pattern 2: Repeated-I triads - "I build, I ship, I lead"
+  const repeatedIPattern = /I\s+\w+[,;.]\s+I\s+\w+[,;.]\s+(?:and\s+)?I\s+\w+/i
+  filtered = filtered.filter(sentence => {
+    if (repeatedIPattern.test(sentence)) {
+      fixed = true
+      return false
+    }
+    return true
+  })
+
+  // Pattern 3: Three consecutive short parallel sentences (<=6 words, same starting word)
+  if (filtered.length >= 3) {
+    const toRemove = new Set<number>()
+    for (let i = 0; i <= filtered.length - 3; i++) {
+      const trio = [filtered[i], filtered[i + 1], filtered[i + 2]]
+      const wordCounts = trio.map(s => s.split(/\s+/).length)
+      const allShort = wordCounts.every(c => c <= 6)
+      const firstWords = trio.map(s => s.split(/\s+/)[0]?.toLowerCase())
+      const sameStart = firstWords[0] === firstWords[1] && firstWords[1] === firstWords[2]
+      if (allShort && sameStart) {
+        toRemove.add(i)
+        toRemove.add(i + 1)
+        toRemove.add(i + 2)
+        fixed = true
+      }
+    }
+    if (toRemove.size > 0) {
+      filtered = filtered.filter((_, idx) => !toRemove.has(idx))
+    }
+  }
+
+  if (fixed) {
+    fixes.push('Removed mantra-style slogan or triadic rhetoric')
+  }
+
+  if (filtered.length === 0) return text
+  return joinSentences(filtered)
+}
+
+// ---- Global Rhythm Cap (30% I/My Sentence-Start Ceiling) ----
+
+const GERUND_MAP: Record<string, string> = {
+  built: 'Building',
+  led: 'Leading',
+  shipped: 'Shipping',
+  designed: 'Designing',
+  created: 'Creating',
+  developed: 'Developing',
+  implemented: 'Implementing',
+  deployed: 'Deploying',
+  optimized: 'Optimizing',
+  managed: 'Managing',
+  reduced: 'Reducing',
+  improved: 'Improving',
+  automated: 'Automating',
+  configured: 'Configuring',
+  integrated: 'Integrating',
+  architected: 'Architecting',
+  engineered: 'Engineering',
+  collaborated: 'Collaborating',
+  established: 'Establishing',
+}
+
+function rewriteIMyOpener(sentence: string): string | null {
+  const trimmed = sentence.trim()
+
+  // Template 1: "I built/developed/created/..." -> gerund form
+  const actionMatch = trimmed.match(
+    /^I\s+(built|developed|created|designed|shipped|led|implemented|deployed|optimized)\s+(.*)$/i
+  )
+  if (actionMatch) {
+    const verb = actionMatch[1].toLowerCase()
+    const gerund = GERUND_MAP[verb]
+    if (gerund) return `${gerund} ${actionMatch[2]}`
+  }
+
+  // Template 2: "I worked on / contributed to / focused on" -> "Through ..."
+  const throughMatch = trimmed.match(/^I\s+(worked on|contributed to|focused on)\s+(.*)$/i)
+  if (throughMatch) return `Through ${throughMatch[2]}`
+
+  // Template 3: "I used/leveraged/applied/utilized" -> "Leveraging ..."
+  const leverageMatch = trimmed.match(/^I\s+(used|leveraged|applied|utilized)\s+(.*)$/i)
+  if (leverageMatch) return `Leveraging ${leverageMatch[2]}`
+
+  // Template 4: "My experience/background/work/role/time ..." -> "This [noun] ..."
+  const myNounMatch = trimmed.match(/^My\s+(experience|background|work|role|time)\s+(.*)$/i)
+  if (myNounMatch) return `This ${myNounMatch[1].toLowerCase()} ${myNounMatch[2]}`
+
+  // Template 5: Generic past-tense "I [verb]ed ..." -> gerund form
+  const genericPastMatch = trimmed.match(/^I\s+(\w+ed)\s+(.*)$/i)
+  if (genericPastMatch) {
+    const verb = genericPastMatch[1].toLowerCase()
+    const gerund = GERUND_MAP[verb]
+    if (gerund) return `${gerund} ${genericPastMatch[2]}`
+  }
+
+  // Template 6: "I have/had/am/was ..." -> "My background includes ..."
+  const beHaveMatch = trimmed.match(/^I\s+(have|had|am|was)\s+(.*)$/i)
+  if (beHaveMatch) return `My background includes ${beHaveMatch[2]}`
+
+  return null
+}
+
+function enforceRhythmCap(paragraphs: string[], fixes: string[]): string[] {
+  // Flatten all paragraphs into indexed sentence array
+  const sentenceMap: Array<{ paraIdx: number; sentIdx: number; text: string }> = []
+  const paragraphSentences: string[][] = paragraphs.map(p => splitSentences(p))
+
+  for (let pIdx = 0; pIdx < paragraphSentences.length; pIdx++) {
+    for (let sIdx = 0; sIdx < paragraphSentences[pIdx].length; sIdx++) {
+      sentenceMap.push({ paraIdx: pIdx, sentIdx: sIdx, text: paragraphSentences[pIdx][sIdx] })
+    }
+  }
+
+  const totalSentences = sentenceMap.length
+  if (totalSentences === 0) return paragraphs
+
+  // Count I/My starters
+  const imySentences = sentenceMap.filter(s => startsWithIMy(s.text))
+  const maxAllowed =
+    totalSentences <= 6
+      ? Math.max(2, Math.floor(totalSentences * 0.3))
+      : Math.floor(totalSentences * 0.3)
+
+  if (imySentences.length <= maxAllowed) return paragraphs
+
+  // Sort back-to-front for safe rewriting, skip opening sentence (para 0, sent 0)
+  const candidates = imySentences.filter(s => !(s.paraIdx === 0 && s.sentIdx === 0)).reverse()
+
+  let rewriteCount = 0
+  const excess = imySentences.length - maxAllowed
+
+  for (const candidate of candidates) {
+    if (rewriteCount >= excess) break
+
+    const rewritten = rewriteIMyOpener(candidate.text)
+    if (rewritten) {
+      paragraphSentences[candidate.paraIdx][candidate.sentIdx] = rewritten
+      rewriteCount++
+    }
+  }
+
+  if (rewriteCount > 0) {
+    fixes.push(`Rewrote ${rewriteCount} sentence opener(s) to enforce 30% I/My cap`)
+  }
+
+  return paragraphSentences.map(sentences => joinSentences(sentences))
+}
+
 // ---- Main Post-Processor ----
 
 /**
  * Process an array of cover letter paragraphs through all writing rules.
  * Returns cleaned paragraphs and a list of fixes applied.
  */
-export function postProcessCoverLetter(paragraphs: string[]): PostProcessorResult {
+export function postProcessCoverLetter(
+  paragraphs: string[],
+  options?: { metricsToFeature?: string[] }
+): PostProcessorResult {
   const fixes: string[] = []
+  const metricsToFeature = options?.metricsToFeature ?? []
 
   const processed = paragraphs.map(paragraph => {
     let text = paragraph
 
     // Apply rules in order of priority
     text = fixEmDashes(text, fixes)
+    text = fixHyphenSentenceBreaks(text, fixes)
     text = fixBrackets(text, fixes)
     text = fixAiMetaLanguage(text, fixes)
     text = fixAiCliches(text, fixes)
+    text = fixMantraSlogans(text, fixes)
     text = fixFloweryAdjectives(text, fixes)
+    text = fixVagueMetrics(text, [...metricsToFeature], fixes)
     text = fixConsecutiveIStarts(text, fixes)
     text = fixPassiveClosings(text, fixes)
 
@@ -253,8 +600,11 @@ export function postProcessCoverLetter(paragraphs: string[]): PostProcessorResul
     return text
   })
 
+  // Global rhythm cap: enforce 30% I/My sentence-start ceiling across all paragraphs
+  const rhythmProcessed = enforceRhythmCap(processed, fixes)
+
   // Deduplicate fixes
   const uniqueFixes = [...new Set(fixes)]
 
-  return { paragraphs: processed, fixes: uniqueFixes }
+  return { paragraphs: rhythmProcessed, fixes: uniqueFixes }
 }

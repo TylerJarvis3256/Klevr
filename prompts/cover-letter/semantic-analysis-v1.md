@@ -36,7 +36,16 @@ Analyze the job description to identify the company's **primary pain point** and
         "bullets": ["string"]
       }
     ],
-    "skills": ["string"]
+    "skills": ["string"],
+    "education": [
+      {
+        "school": "string",
+        "degree": "string",
+        "major": "string (optional)",
+        "graduation_date": "string",
+        "gpa": "string (optional)"
+      }
+    ]
   }
 }
 ```
@@ -75,7 +84,14 @@ Return ONLY valid JSON matching this structure:
   "metrics_to_feature": [
     "Exact metric strings from user's bullets to weave into narrative, e.g. '40% latency reduction'"
   ],
-  "skills_to_weave": ["Skills from the user's profile that map to JD requirements"]
+  "skills_to_weave": ["Skills from the user's profile that map to JD requirements"],
+  "recommended_voice": "casual",
+  "education_to_feature": {
+    "credential": "B.S. in Computer Science, University of X",
+    "graduation_date": "May 2026",
+    "gpa": "3.8 (only if >= 3.0)",
+    "relevance_note": "Why this credential matters for this role"
+  }
 }
 ```
 
@@ -120,6 +136,35 @@ Extract from the JD:
 - Industry vertical
 - What the company does/builds (even if you have to infer)
 - Culture signals from language used ("move fast", "collaborative team", "rigorous testing")
+
+### 7. Voice Recommendation
+
+Based on culture_signals and JD language, recommend a voice for the cover letter:
+
+- **"casual"** if: startup, "fast-paced", "ship", "build", "playground", "obsessed", informal JD language, small team, early-stage
+- **"research"** if: academic, "rigorous", "methodology", "peer-reviewed", research lab, university
+- **"friendly"** if: "collaborative", "team-oriented", "community", nonprofit, education, social impact
+- **"professional"** if: corporate, finance, government, healthcare, formal JD language, or none of the above signals match
+
+Default to "professional" when signals are ambiguous.
+
+### 8. Select Education Credential (Conditional)
+
+Only include `education_to_feature` when the JD signals it would strengthen the application:
+
+- **Include if:** JD targets students, interns, new grads, entry-level; mentions "currently enrolled", "pursuing degree", "recent graduate"; or major/coursework directly aligns with role requirements
+- **Omit if:** JD targets experienced professionals, makes no mention of education, or the role is senior-level where work experience speaks louder
+
+If including:
+
+- Pick the single most relevant degree
+- Format as "[Degree] in [Major], [School]"
+- Include GPA only if >= 3.0
+- Write a relevance_note explaining why this credential matters for this specific role
+
+If no education data exists in the profile, always omit this field entirely.
+
+If the conditions for inclusion are not met, omit the `education_to_feature` field from the output.
 
 ## Critical Rules
 

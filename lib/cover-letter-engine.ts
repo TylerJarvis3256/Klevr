@@ -40,6 +40,13 @@ async function runCLSemanticAnalysis(
         bullets: proj.bullets,
       })),
       skills: profileData.skills,
+      education: profileData.education.map(edu => ({
+        school: edu.school,
+        degree: edu.degree,
+        major: edu.major,
+        graduation_date: edu.graduation_date,
+        gpa: edu.gpa,
+      })),
     },
   }
 
@@ -127,6 +134,7 @@ async function generateCLContent(
       metrics_to_feature: analysis.metrics_to_feature,
       skills_to_weave: analysis.skills_to_weave,
     },
+    education_context: analysis.education_to_feature ?? null,
   }
 
   const message = await callAnthropic(
@@ -165,16 +173,22 @@ export async function generateCoverLetterV2(
   userId: string,
   profileData: StructuredProfileData,
   job: Job,
-  voice: CoverLetterVoice = 'professional'
+  voice?: CoverLetterVoice
 ): Promise<CLEngineOutput> {
   // Step 1: Semantic analysis
   const analysis = await runCLSemanticAnalysis(userId, profileData, job)
 
-  // Step 2: Generate content
-  const rawContent = await generateCLContent(userId, profileData, job, analysis, voice)
+  // Use recommended voice from analysis if no explicit override provided
+  const recommendedVoice = analysis.recommended_voice || 'professional'
+  const effectiveVoice = voice ?? recommendedVoice
 
-  // Step 3: Post-process
-  const { paragraphs: processedParagraphs, fixes } = postProcessCoverLetter(rawContent.paragraphs)
+  // Step 2: Generate content
+  const rawContent = await generateCLContent(userId, profileData, job, analysis, effectiveVoice)
+
+  // Step 3: Post-process (with metric context for vague qualifier detection)
+  const { paragraphs: processedParagraphs, fixes } = postProcessCoverLetter(rawContent.paragraphs, {
+    metricsToFeature: analysis.metrics_to_feature,
+  })
 
   const content = {
     salutation: rawContent.salutation,
@@ -208,7 +222,9 @@ export async function generateCoverLetterV2(
     markdown,
     metadata: {
       semantic_analysis: analysis,
-      voice,
+      voice: effectiveVoice,
+      voice_auto_recommended: recommendedVoice,
+      voice_used: effectiveVoice,
       model_used: ANTHROPIC_MODELS.SONNET,
       prompt_version: 'cover-letter-generate-v2.0.0',
       experiences_used: analysis.top_experiences.map(e => e.index),

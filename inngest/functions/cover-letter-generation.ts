@@ -19,7 +19,7 @@ export const coverLetterGenerationFunction = inngest.createFunction(
   { event: 'cover-letter/generate' },
   async ({ event, step }) => {
     const { userId, taskId, applicationId, voice: rawVoice } = event.data
-    const voice = (rawVoice as CoverLetterVoice) || 'professional'
+    const voice = rawVoice ? (rawVoice as CoverLetterVoice) : undefined
 
     // Step 1: Check usage limit
     const canProceed = await step.run('check-usage-limit', async () => {

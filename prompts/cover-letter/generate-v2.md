@@ -46,6 +46,12 @@ Generate a compelling, narrative cover letter that bridges the user's experience
     },
     "metrics_to_feature": ["..."],
     "skills_to_weave": ["..."]
+  },
+  "education_context": {
+    "credential": "B.S. in Computer Science, University of X",
+    "graduation_date": "May 2026",
+    "gpa": "3.8",
+    "relevance_note": "Why this credential matters"
   }
 }
 ```
@@ -81,11 +87,17 @@ Good openings:
 
 ### Paragraph 2: The Bridge (4-6 sentences)
 
-Connect the TOP experience to the role using the bridge angle. Include at least ONE specific metric from the analysis. Show cause and effect - what you did, what happened, and why it matters for this role.
+Describe a specific Significant Achievement or Problem-Solving Moment from the user's top experience. Structure it as an Action-to-Value Bridge:
+
+1. Identify the need or problem (e.g., "I noticed a bottleneck in our scheduling process")
+2. Describe the action taken (what you built, organized, or changed)
+3. Anchor the result with a specific metric from metrics_to_feature, or if no metric exists, use concrete nouns describing the outcome
+
+Do NOT summarize the job description. Do NOT generalize the experience. Every sentence must reference a specific action, tool, team, or result from the user's profile.
 
 ### Paragraph 3: The Depth (3-5 sentences)
 
-Use the second experience or top project to demonstrate breadth. Weave in relevant skills from the analysis. Connect to a different competency than paragraph 2.
+Use the second experience or top project to demonstrate breadth. Weave in relevant skills from the analysis - but NEVER list them. Every skill you mention must be anchored to a specific action or outcome from the user's experience. Connect to a different competency than paragraph 2.
 
 ### Paragraph 4: The Close (2-3 sentences)
 
@@ -109,20 +121,26 @@ Bad closings (NEVER use):
 - Formal, measured tone
 - No contractions
 - Focus on ROI, strategy, impact
+- Describe a moment of successful stakeholder collaboration - aligning cross-functional teams, navigating competing priorities, or translating technical work into business value.
 - Example: "I delivered a 40% reduction in processing time by redesigning the query architecture."
 
 ### Casual
 
-- Enthusiastic, direct tone
-- Contractions are fine
-- Focus on building, shipping, speed
-- Example: "I've shipped features that cut processing time by 40% - and I'm looking to do the same at scale."
+- Enthusiastic, direct "Builder's" tone
+- Contractions are encouraged
+- Use Builder's Vocabulary: shipping, prototyping, mapping, deploying, wiring up, spinning up, hacking on, experimenting with
+- Focus on building, shipping, and speed
+- Reference a specific "Aha!" moment from the user's experimentation (e.g., "When I first wired up Supabase to handle real-time tip tracking, I knew this was the kind of systems work I wanted to do full-time.")
+- Describe a specific challenge - a problem that took real effort to solve, a constraint that forced creative thinking, or a process you improved through persistence. This should feel like a real story only you could tell.
+- Match the energy of the JD - if they say "obsessed with tools," you should sound like someone who IS obsessed with tools
+- Example: "I've shipped features that cut processing time by 40%. I'm looking to bring that same energy to your team."
 
 ### Friendly
 
 - Warm, collaborative tone
 - Contractions are fine
 - Focus on culture fit, teamwork
+- Describe how your work improved the daily experience of teammates or users - a process you simplified, a tool you built that someone thanked you for, or a collaboration that made everyone's job easier.
 - Example: "Working closely with my team, we reduced processing time by 40% through a collaborative redesign effort."
 
 ### Research
@@ -130,7 +148,35 @@ Bad closings (NEVER use):
 - Academic, precise tone
 - No contractions
 - Focus on methodology, rigor
+- Describe the "Why" behind a technical choice - explain the reasoning process that led to one approach over alternatives, referencing data, constraints, or prior work.
 - Example: "Through systematic optimization of the query pipeline, I achieved a 40% reduction in processing time, validated through A/B testing across 10K requests."
+
+## Sentence Structure Variance
+
+No more than 30% of sentences may start with "I" or "My". Use diverse openers:
+
+- Participial phrases: "After noticing a persistent bottleneck in..."
+- Prepositional phrases: "Through the development of my capstone project..."
+- Dependent clauses: "While small businesses often struggle with..."
+- Gerund phrases: "Engineering a custom solution allowed me to..."
+
+The post-processor will enforce this cap deterministically. Write with variety from the start.
+
+## Education Grounding
+
+The semantic analysis may or may not include education_context depending on
+whether it strengthens the application (e.g., JD targets students/new grads,
+or major aligns with role). Follow these rules:
+
+If education_context is provided and not null:
+
+- Weave the credential naturally into a sentence about experience or skills
+- If graduation is future, frame as "completing [degree] in [date]"
+- If GPA is provided, include it once and only if it strengthens the application
+- Do NOT dedicate an entire sentence solely to education
+- Example: "Drawing from both my B.S. in Computer Science and my work building Klevr, I..."
+
+If education_context is null, do not mention education at all.
 
 ## NEVER Rules
 
@@ -144,10 +190,17 @@ These are absolute constraints. The post-processor will catch violations, but pr
 6. **NEVER use passive closings** - no "hope to hear from you", "looking forward to hearing"
 7. **NEVER include brackets** - no `[Your Name]` or `[Company]` placeholders
 8. **NEVER use generic filler** - every sentence must contain specific, concrete information
+9. **NEVER use vague qualifiers** when a metric exists in metrics_to_feature. Banned phrases: "significant", "significantly", "substantial", "substantially", "considerable", "considerably", "improved", "enhanced", "major", "notable", "marked", "dramatic", "dramatically". If a numerical metric is available (e.g., "~15 minutes", "15+ staff", "40%"), you MUST use the exact figure. Replace "resulted in significant improvement" with the actual number from metrics_to_feature.
+10. **NEVER use a hyphen or dash as a sentence break.** Do not write "clause - clause" patterns where both sides are independent clauses. If you need a break between two independent clauses, use a period to create two sentences, or use a semicolon.
+11. **NEVER list skills in isolation.** Do not write "I am proficient in Python, React, and PostgreSQL." Every skill mention must be tied to the specific project or experience where it was used.
+12. **NEVER use mantra-style three-part slogans.** Do not write "Analyze, Automate, Accelerate" or "I build, I ship, I lead" or any triadic rhetorical structure.
+13. **NEVER open with a cliche setup** like "In today's fast-paced world" or "In today's competitive market." Start with a concrete value statement tied to the company's specific need.
+14. **NEVER summarize the job description** back to the reader. They already know the role. Focus on YOUR story and how it connects to THEIR need.
 
 ## Length Target
 
-- 250-350 words total across all paragraphs
+- 300-400 words total across all paragraphs
+- Aim for a full, visually dense single page. If you have fewer than 300 words, expand Paragraph 2 or 3 by adding one sentence of descriptive process detail (explaining how a specific task was performed or a goal was met).
 - 3-4 paragraphs
 - Each paragraph: 2-6 sentences
 
