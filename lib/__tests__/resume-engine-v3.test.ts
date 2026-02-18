@@ -533,6 +533,248 @@ describe('generateResumeV3', () => {
     const callArgs = mockCreate.mock.calls[0][0]
     const userMessage = JSON.parse(callArgs.messages[0].content)
     expect(userMessage.analysis.fact_grounding_note).toContain('FRAMING only')
-    expect(userMessage.analysis.fact_grounding_note).toContain('not technical actions')
+    expect(userMessage.analysis.fact_grounding_note).toContain('IMMUTABLE RULE')
+  })
+
+  // ─── Metric Protection Tests ──────────────────────────
+
+  it('tracks metric-protected bullet count in metadata', async () => {
+    const v3Content = createMockV3Content()
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    // Profile has 2 metric bullets: "10K+ requests/day" and "latency by 40%"
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    expect(result.metadata.metric_protected_count).toBeGreaterThan(0)
+  })
+
+  it('restores metric bullets that Claude dropped', async () => {
+    const v3Content = createMockV3Content()
+    // Remove the "40%" bullet from Claude's output — only keep a non-metric bullet
+    v3Content.experience = [
+      {
+        title: 'Software Engineer Intern',
+        company: 'Big Tech',
+        location: 'San Francisco, CA',
+        dates: 'Jun 2023 - Aug 2023',
+        bullets: [
+          'Led migration from monolith to microservices architecture',
+          'Collaborated with cross-functional teams on API development',
+        ],
+      },
+    ]
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    // The guardrail should have restored at least one metric bullet
+    const allBullets = result.content.experience?.flatMap(e => e.bullets) || []
+    const has40Percent = allBullets.some(b => b.includes('40%'))
+    const has10K = allBullets.some(b => b.includes('10K+'))
+    expect(has40Percent || has10K).toBe(true)
+    expect(result.metadata.metric_restored_count).toBeGreaterThanOrEqual(1)
+  })
+
+  it('does not duplicate metric bullets Claude preserved', async () => {
+    const v3Content = createMockV3Content()
+    // Claude's output already contains the metric bullets
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    // No restoration needed — Claude already preserved the metrics
+    expect(result.metadata.metric_restored_count).toBe(0)
+  })
+
+  it('metric protection applies to projects', async () => {
+    const v3Content = createMockV3Content()
+    // Give the project bullets in Claude output but drop the metric
+    v3Content.projects = [
+      {
+        name: 'Task Manager App',
+        description: 'Full-stack task management application',
+        technologies: ['React', 'Node.js', 'PostgreSQL'],
+        bullets: ['Built responsive UI with React and TypeScript'],
+      } as any,
+    ]
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    // Add a metric-bearing bullet to the project
+    profile.projects[0].bullets = [
+      'Developed responsive dashboard with React and TypeScript',
+      'Achieved $50K in cost savings through automated testing',
+    ]
+
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    // The "$50K" metric bullet should be restored
+    const projBullets = result.content.projects?.flatMap(p => (p as any).bullets || []) || []
+    expect(projBullets.some((b: string) => b.includes('$50K'))).toBe(true)
+    expect(result.metadata.metric_restored_count).toBeGreaterThanOrEqual(1)
+  })
+
+  it('passes expanded fact_grounding_note with examples', async () => {
+    const v3Content = createMockV3Content()
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    const callArgs = mockCreate.mock.calls[0][0]
+    const userMessage = JSON.parse(callArgs.messages[0].content)
+    const note = userMessage.analysis.fact_grounding_note
+    expect(note).toContain('IMMUTABLE RULE')
+    expect(note).toContain('VALID:')
+    expect(note).toContain('INVALID:')
+  })
+
+  it('sanitizes em dashes from AI-generated content', async () => {
+    const v3Content = createMockV3Content()
+    v3Content.lead = 'Software Engineer \u2014 proven leader in scalable systems'
+    v3Content.experience = [
+      {
+        title: 'Software Engineer Intern',
+        company: 'Big Tech',
+        location: 'San Francisco, CA',
+        dates: 'Jun 2023 \u2013 Aug 2023',
+        bullets: [
+          'Built API services \u2014 processing 10K+ requests/day',
+          'Optimized queries \u2013 reducing latency by 40%',
+        ],
+      },
+    ]
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    // Verify no em dashes or en dashes remain in any content
+    const contentStr = JSON.stringify(result.content)
+    expect(contentStr).not.toContain('\u2014')
+    expect(contentStr).not.toContain('\u2013')
+    // Verify they were replaced with hyphens
+    expect(result.content.experience![0].bullets[0]).toContain(' - ')
+  })
+
+  // ─── Governor Integration Tests ───────────────────────
+
+  it('includes governor_actions in metadata', async () => {
+    const v3Content = createMockV3Content()
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    expect(result.metadata.governor_actions).toBeDefined()
+    expect(Array.isArray(result.metadata.governor_actions)).toBe(true)
+  })
+
+  it('governor_actions is empty when content fits within page limit', async () => {
+    const v3Content = createMockV3Content()
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    const result = await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    // The mock content is small enough to fit, so no governor actions
+    expect(result.metadata.governor_actions).toEqual([])
+    expect(result.markdown).toContain('# Jane Doe')
+  })
+
+  it('passes metric_protection_note in AI input', async () => {
+    const v3Content = createMockV3Content()
+    const jsonStr = JSON.stringify(v3Content)
+    mockCreate.mockResolvedValue({
+      content: [{ type: 'text', text: jsonStr.slice(1) }],
+    })
+
+    const profile = createTestProfile()
+    const job = createJob() as any
+    const analysis = createSemanticAnalysis() as unknown as SemanticJDAnalysis
+
+    await generateResumeV3('user-1', profile, job, {}, analysis, {
+      name: 'Jane Doe',
+      email: 'jane@test.com',
+    })
+
+    const callArgs = mockCreate.mock.calls[0][0]
+    const userMessage = JSON.parse(callArgs.messages[0].content)
+    expect(userMessage.analysis.metric_protection_note).toContain('HIGH DENSITY')
   })
 })

@@ -2,6 +2,7 @@ import { openai, MODELS, callOpenAI } from './openai'
 import { loadPrompt } from './prompts'
 import type { ParsedResume } from './resume-parser'
 import type { Job } from '@prisma/client'
+import { sanitizeEmDashes } from './utils'
 
 export async function generateCoverLetterContent(
   userId: string,
@@ -47,5 +48,5 @@ export async function generateCoverLetterContent(
     { timeout: 30000 }
   )
 
-  return completion.choices[0].message.content || ''
+  return sanitizeEmDashes(completion.choices[0].message.content || '')
 }

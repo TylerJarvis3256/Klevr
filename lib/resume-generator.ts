@@ -2,6 +2,7 @@ import { openai, MODELS, callOpenAI, parseOpenAIJson } from './openai'
 import { loadPrompt } from './prompts'
 import type { ParsedResume } from './resume-parser'
 import type { Job } from '@prisma/client'
+import { deepSanitizeEmDashes } from './utils'
 
 // Re-export types from resume-types.ts (client-safe module)
 export type {
@@ -58,7 +59,8 @@ export async function generateResumeContent(
     { timeout: 45000 } // 45 seconds for resume generation
   )
 
-  return parseOpenAIJson<GeneratedResumeContent>(completion.choices[0].message.content)
+  const content = parseOpenAIJson<GeneratedResumeContent>(completion.choices[0].message.content)
+  return deepSanitizeEmDashes(content)
 }
 
 // ─── V3 Profile Builder ──────────────────────────────

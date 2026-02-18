@@ -12,9 +12,9 @@ Generate a tailored resume optimized for a specific job posting.
 ## Input (JSON)
 
 {
-"user_resume": { /_ ParsedResume structure _/ },
+"user*resume": { /* ParsedResume structure _/ },
 "job": { /_ Job and parsed job description _/ },
-"profile_skills": [ /_ User's current skills from profile (authoritative source) _/ ]
+"profile_skills": [ /_ User's current skills from profile (authoritative source) \_/ ]
 }
 
 ## Output Format (JSON)
@@ -77,6 +77,7 @@ Generate a tailored resume optimized for a specific job posting.
 - Keep all information truthful - do not fabricate experiences or skills
 - If job requires specific skills user doesn't have, don't add them to skills section
 - Focus summary on strengths that match the role
+- Never use em dashes (\u2014) or en dashes (\u2013) \u2014 use a regular hyphen with spaces ( - ) instead
 
 ## Example Tailoring
 
