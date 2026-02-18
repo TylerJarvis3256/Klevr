@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { DeleteConfirmationDialog } from '@/components/ui/delete-confirmation-dialog'
 import { FitBadge } from './fit-badge'
 import { Trash2, Loader2, CheckSquare } from 'lucide-react'
 import { toast } from 'sonner'
@@ -35,6 +36,7 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [bulkStatus, setBulkStatus] = useState<ApplicationStatus | ''>('')
 
   const toggleSelection = (id: string) => {
@@ -88,16 +90,6 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
   }
 
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return
-
-    if (
-      !confirm(
-        `Are you sure you want to delete ${selectedIds.size} application(s)? This will also delete all related notes and documents.`
-      )
-    ) {
-      return
-    }
-
     setIsDeleting(true)
     try {
       const response = await fetch('/api/applications/bulk-update', {
@@ -117,6 +109,7 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
       const result = await response.json()
       toast.success(`Deleted ${result.count} application(s)`)
       setSelectedIds(new Set())
+      setDeleteDialogOpen(false)
       onUpdate?.()
     } catch (error: unknown) {
       toast.error(error instanceof Error ? error.message : 'An error occurred')
@@ -170,22 +163,13 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
             </Button>
 
             <Button
-              onClick={handleBulkDelete}
+              onClick={() => setDeleteDialogOpen(true)}
               disabled={isDeleting || isUpdatingStatus}
               variant="destructive"
               size="sm"
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Selected
-                </>
-              )}
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete Selected
             </Button>
           </div>
 
@@ -305,6 +289,15 @@ export function JobsTable({ applications, onUpdate }: JobsTableProps) {
           </div>
         ))}
       </div>
+
+      <DeleteConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={handleBulkDelete}
+        title="Delete Applications"
+        description={`Are you sure you want to delete ${selectedCount} application(s)? This will also delete all related notes, documents, and generated files. This action cannot be undone.`}
+        isDeleting={isDeleting}
+      />
     </div>
   )
 }
