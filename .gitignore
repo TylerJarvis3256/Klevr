@@ -44,9 +44,6 @@ prisma/dev.db-journal
 next-env.d.ts
 
 # developer tools
-.claude/
-CLAUDE.md
-.playwright-mcp/
 
 # local dev artifacts
 storage/
