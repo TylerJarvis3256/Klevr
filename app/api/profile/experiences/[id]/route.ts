@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const experience = await prisma.jobExperience.findFirst({
       where: { id, user_id: user.id },
-      include: { Bullet: { orderBy: { priority: 'desc' } } },
+      include: { Bullets: { orderBy: { priority: 'asc' } } },
     })
 
     return NextResponse.json({ experience })

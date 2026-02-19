@@ -18,11 +18,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { id } = await params
+    const { id: projectId } = await params
 
-    // Verify project ownership
+    // Verify the project belongs to the user
     const project = await prisma.project.findFirst({
-      where: { id, user_id: user.id },
+      where: { id: projectId, user_id: user.id },
     })
 
     if (!project) {
@@ -39,16 +39,19 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       )
     }
 
+    const maxPriority = await prisma.bullet.aggregate({
+      where: { project_id: projectId, user_id: user.id },
+      _max: { priority: true },
+    })
+
     const bullet = await prisma.bullet.create({
       data: {
         user_id: user.id,
-        experience_id: null,
-        project_id: id,
+        project_id: projectId,
         text: parsed.data.text,
         tags: parsed.data.tags,
-        priority: parsed.data.priority,
+        priority: parsed.data.priority ?? (maxPriority._max.priority ?? -1) + 1,
         is_favorite: parsed.data.is_favorite,
-        ai_category: parsed.data.ai_category || null,
       },
     })
 

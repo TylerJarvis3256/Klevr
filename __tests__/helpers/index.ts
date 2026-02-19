@@ -6,6 +6,7 @@ export {
   createEducation,
   createJobExperience,
   createBullet,
+  createResumeUpload,
   createProject,
   createSemanticAnalysis,
   resetFactoryCounters,

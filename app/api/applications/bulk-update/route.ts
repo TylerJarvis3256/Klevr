@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { ApplicationStatus } from '@prisma/client'
+import { deleteApplicationWithCleanup } from '@/lib/actions/delete-application'
 
 const bulkUpdateSchema = z.object({
   applicationIds: z.array(z.string()).min(1),
@@ -51,8 +52,6 @@ export async function POST(req: NextRequest) {
     }
 
     // Perform bulk operation
-    let result
-
     if (action === 'update_status') {
       if (!data?.status) {
         return NextResponse.json(
@@ -61,7 +60,7 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      result = await prisma.application.updateMany({
+      const result = await prisma.application.updateMany({
         where: {
           id: { in: applicationIds },
         },
@@ -83,17 +82,19 @@ export async function POST(req: NextRequest) {
         status: data.status,
       })
     } else if (action === 'delete') {
-      // Delete applications (cascade will delete related notes, documents, AI tasks)
-      result = await prisma.application.deleteMany({
-        where: {
-          id: { in: applicationIds },
-        },
-      })
+      let deletedCount = 0
+
+      for (const app of applications) {
+        const result = await deleteApplicationWithCleanup(app.id)
+        if (result.success) {
+          deletedCount++
+        }
+      }
 
       return NextResponse.json({
         success: true,
         action: 'delete',
-        count: result.count,
+        count: deletedCount,
       })
     }
 

@@ -177,7 +177,7 @@ model Project {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   key_metrics   String?
-  Bullet        Bullet[]
+  Bullets       Bullet[]
   User          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
@@ -218,7 +218,7 @@ model JobExperience {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
   key_metrics   String?
-  Bullet        Bullet[]
+  Bullets       Bullet[]
   User          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
@@ -238,7 +238,7 @@ model Bullet {
   metrics       Json?
   created_at    DateTime       @default(now())
   updated_at    DateTime       @updatedAt
-  JobExperience JobExperience? @relation(fields: [experience_id], references: [id], onDelete: Cascade)
+  Experience    JobExperience? @relation(fields: [experience_id], references: [id], onDelete: Cascade)
   Project       Project?       @relation(fields: [project_id], references: [id], onDelete: Cascade)
   User          User           @relation(fields: [user_id], references: [id], onDelete: Cascade)
 

@@ -12,6 +12,7 @@ const createExperienceSchema = z.object({
   is_current: z.boolean().default(false),
   description: z.string().max(2000).or(z.literal('')).nullable().optional(),
   key_metrics: z.string().max(1000).or(z.literal('')).nullable().optional(),
+  display_order: z.number().int().optional(),
 })
 
 export async function GET() {
@@ -23,8 +24,8 @@ export async function GET() {
 
     const experiences = await prisma.jobExperience.findMany({
       where: { user_id: user.id },
+      include: { Bullets: { orderBy: { priority: 'asc' } } },
       orderBy: { display_order: 'asc' },
-      include: { Bullet: { orderBy: { priority: 'desc' } } },
     })
 
     return NextResponse.json({ experiences })
@@ -67,9 +68,9 @@ export async function POST(req: NextRequest) {
         is_current: parsed.data.is_current,
         description: parsed.data.description || null,
         key_metrics: parsed.data.key_metrics || null,
-        display_order: (maxOrder._max.display_order || 0) + 1,
+        display_order: parsed.data.display_order ?? (maxOrder._max.display_order ?? -1) + 1,
       },
-      include: { Bullet: { orderBy: { priority: 'desc' } } },
+      include: { Bullets: true },
     })
 
     return NextResponse.json({ experience }, { status: 201 })

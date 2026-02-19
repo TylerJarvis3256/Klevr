@@ -12,6 +12,7 @@ const createEducationSchema = z.object({
   location: z.string().max(200).or(z.literal('')).nullable().optional(),
   relevant_coursework: z.array(z.string().max(200)).max(50).default([]),
   honors: z.array(z.string().max(200)).max(50).default([]),
+  display_order: z.number().int().optional(),
 })
 
 export async function GET() {
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
         location: parsed.data.location || null,
         relevant_coursework: parsed.data.relevant_coursework,
         honors: parsed.data.honors,
-        display_order: (maxOrder._max.display_order || 0) + 1,
+        display_order: parsed.data.display_order ?? (maxOrder._max.display_order ?? -1) + 1,
       },
     })
 

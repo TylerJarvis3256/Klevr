@@ -5,10 +5,10 @@ import { getDashboardStats } from '@/lib/dashboard-stats'
 import { StatCards } from '@/components/dashboard/stat-cards'
 import { FilterBar } from '@/components/dashboard/filter-bar'
 import { Pipeline } from '@/components/dashboard/pipeline'
-import { EmptyState } from '@/components/ui/empty-state'
+import { EmptyDashboard } from '@/components/dashboard/empty-dashboard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { Plus, Inbox } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { FitBucket, ApplicationStatus } from '@prisma/client'
 
 interface DashboardPageProps {
@@ -74,20 +74,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
       {/* Pipeline */}
       {applications.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-12">
-          <EmptyState
-            icon={Inbox}
-            title="No applications yet"
-            description="Add your first job to start tracking your path to hired."
-            action={{
-              label: 'Add Your First Job',
-              onClick: () => {
-                window.location.href = '/jobs/new'
-              },
-              variant: 'cta',
-            }}
-          />
-        </div>
+        <EmptyDashboard />
       ) : (
         <Pipeline
           applications={applications}
