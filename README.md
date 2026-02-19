@@ -22,26 +22,26 @@
 
 ### Tech Stack
 
-| Layer                      | Technology                                             | Rationale                                                                                                                                                                                                             |
-| -------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Framework**              | Next.js 15 (App Router)                                | Server-first rendering with React Server Components. Nested layouts enable per-route auth guards and onboarding gating without wrapper components. API routes colocate with their pages for cohesive feature modules. |
-| **Language**               | TypeScript 5 (strict mode)                             | Full type safety from Prisma-generated types through API boundaries to React components. Zod schemas enforce runtime validation at system edges while internal code trusts the type system.                           |
-| **Database**               | Prisma 7 + Supabase (PostgreSQL)                       | Prisma's type-safe query builder eliminates raw SQL and generates TypeScript types directly from the schema. Supabase provides managed PostgreSQL with connection pooling.                                            |
-| **Auth**                   | Auth0 (email/password + Google OAuth)                  | Enterprise-grade authentication with SSR cookie-based sessions via `@auth0/nextjs-auth0`. Post-login hooks sync Auth0 users to the application database on first sign-in.                                             |
-| **AI - Generation**        | Anthropic Claude (`claude-sonnet-4-5-20250929`)        | Claude generates tailored resumes through a two-phase pipeline: semantic job analysis followed by structured content generation. Prefilled assistant message technique enables reliable JSON extraction.              |
-| **AI - Scoring & Parsing** | OpenAI (`gpt-4o-2024-05-13`, `gpt-4o-mini-2024-07-18`) | GPT-4o-mini handles high-volume tasks (job parsing, fit explanation, company research) while GPT-4o powers cover letter generation. Pinned model IDs prevent silent behavior changes.                                 |
-| **Background Jobs**        | Inngest                                                | Event-driven functions with step-level idempotency and automatic retries. All AI operations run asynchronously - the client never waits for an LLM response.                                                          |
-| **File Storage**           | AWS S3                                                 | Presigned URLs for direct browser uploads (resumes) and server-side buffer uploads (generated PDFs). User-scoped storage keys prevent cross-tenant file access.                                                       |
-| **PDF Generation**         | Puppeteer + marked                                     | Markdown-to-HTML-to-PDF pipeline with Chromium rendering. A custom one-page governor enforces A4 page constraints through semantic-aware content compression.                                                         |
-| **UI**                     | Tailwind CSS 4 + shadcn/ui + Lucide                    | Utility-first styling with a custom design token system (cream/charcoal/orange/teal palette). shadcn/ui provides accessible, composable primitives.                                                                   |
-| **Forms**                  | React Hook Form + Zod                                  | Schema-first validation - Zod schemas generate both runtime validation and TypeScript types from a single source of truth.                                                                                            |
-| **Data Fetching**          | TanStack Query                                         | Client-side cache management with query key conventions. Eliminates raw `fetch` calls in components and provides automatic background refetching.                                                                     |
-| **Testing**                | Vitest + Testing Library                               | Sub-second test execution with native ESM support. Test factories produce deterministic data without database dependencies.                                                                                           |
-| **Deployment**             | Vercel                                                 | Zero-config deployment for Next.js with automatic preview environments per branch. Serverless functions handle API routes and Inngest webhooks.                                                                       |
+| Layer                      | Technology                                             | Rationale                                                                                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Framework**              | Next.js 15 (App Router)                                | Server-first rendering with React Server Components. Nested layouts enable per-route auth guards and onboarding gating without wrapper components. API routes colocate with their pages for cohesive feature modules.       |
+| **Language**               | TypeScript 5 (strict mode)                             | Full type safety from Prisma-generated types through API boundaries to React components. Zod schemas enforce runtime validation at system edges while internal code trusts the type system.                                 |
+| **Database**               | Prisma 7 + Supabase (PostgreSQL)                       | Prisma's type-safe query builder eliminates raw SQL and generates TypeScript types directly from the schema. Supabase provides managed PostgreSQL with connection pooling.                                                  |
+| **Auth**                   | Auth0 (email/password + Google OAuth)                  | Enterprise-grade authentication with SSR cookie-based sessions via `@auth0/nextjs-auth0`. Post-login hooks sync Auth0 users to the application database on first sign-in.                                                   |
+| **AI - Generation**        | Anthropic Claude (`claude-sonnet-4-5-20250929`)        | Claude powers both resume and cover letter generation through semantic two-phase pipelines: job analysis followed by structured content generation. Prefilled assistant message technique enables reliable JSON extraction. |
+| **AI - Scoring & Parsing** | OpenAI (`gpt-4o-2024-05-13`, `gpt-4o-mini-2024-07-18`) | GPT-4o-mini handles high-volume tasks (job parsing, fit explanation, company research). Pinned model IDs prevent silent behavior changes.                                                                                   |
+| **Background Jobs**        | Inngest                                                | Event-driven functions with step-level idempotency and automatic retries. All AI operations run asynchronously - the client never waits for an LLM response.                                                                |
+| **File Storage**           | AWS S3                                                 | Presigned URLs for direct browser uploads (resumes) and server-side buffer uploads (generated PDFs). User-scoped storage keys prevent cross-tenant file access.                                                             |
+| **PDF Generation**         | Puppeteer + marked                                     | Markdown-to-HTML-to-PDF pipeline with Chromium rendering. A custom one-page governor enforces A4 page constraints through semantic-aware content compression.                                                               |
+| **UI**                     | Tailwind CSS 4 + shadcn/ui + Lucide                    | Utility-first styling with a custom design token system (cream/charcoal/orange/teal palette). shadcn/ui provides accessible, composable primitives.                                                                         |
+| **Forms**                  | React Hook Form + Zod                                  | Schema-first validation - Zod schemas generate both runtime validation and TypeScript types from a single source of truth.                                                                                                  |
+| **Data Fetching**          | TanStack Query                                         | Client-side cache management with query key conventions. Eliminates raw `fetch` calls in components and provides automatic background refetching.                                                                           |
+| **Testing**                | Vitest + Testing Library                               | Sub-second test execution with native ESM support. Test factories produce deterministic data without database dependencies.                                                                                                 |
+| **Deployment**             | Vercel                                                 | Zero-config deployment for Next.js with automatic preview environments per branch. Serverless functions handle API routes and Inngest webhooks.                                                                             |
 
 ### Data Model
 
-The system is built around a 16-table PostgreSQL schema with application-level user scoping enforced on every query:
+The system is built around a 19-table PostgreSQL schema with application-level user scoping enforced on every query:
 
 ```mermaid
 erDiagram
@@ -49,10 +49,17 @@ erDiagram
     User ||--o{ Job : "tracks"
     User ||--o{ Application : "manages"
     User ||--o{ Project : "showcases"
+    User ||--o{ Education : "has"
+    User ||--o{ JobExperience : "has"
+    User ||--o{ Bullet : "owns"
+    User ||--o{ ResumeUpload : "uploads"
     User ||--o{ AiTask : "triggers"
     User ||--o{ ActivityLog : "generates"
     User ||--o{ SavedSearch : "configures"
     User ||--o{ Notification : "receives"
+
+    JobExperience ||--o{ Bullet : "contains"
+    Project ||--o{ Bullet : "contains"
 
     Job ||--o{ Application : "applied to"
 
@@ -113,6 +120,9 @@ erDiagram
         string prompt_version
         string model_used
         int tokens_used
+        string template_id
+        string render_provider
+        int page_count
         datetime deleted_at
     }
     AiTask {
@@ -130,6 +140,55 @@ erDiagram
         json query_config
         enum frequency "DAILY | WEEKLY | MONTHLY"
         boolean active
+    }
+    Education {
+        string id PK
+        string user_id FK
+        string school
+        string degree
+        string major
+        string graduation_date
+        string gpa
+        string location
+        string[] relevant_coursework
+        string[] honors
+        int display_order
+    }
+    JobExperience {
+        string id PK
+        string user_id FK
+        string title
+        string company
+        string location
+        string start_date
+        string end_date
+        boolean is_current
+        string description
+        int display_order
+        string key_metrics
+    }
+    Bullet {
+        string id PK
+        string user_id FK
+        string experience_id FK
+        string project_id FK
+        string text
+        string[] tags
+        int priority
+        boolean is_favorite
+        string ai_category
+        json metrics
+    }
+    ResumeUpload {
+        string id PK
+        string user_id FK
+        string file_name
+        string file_url
+        string file_type
+        int file_size
+        json parsed_resume
+        string source
+        datetime deleted_at
     }
     ActivityLog {
         string id PK
@@ -167,6 +226,29 @@ Inngest Function (async)
 Client polls /api/ai-tasks/stream → Detects completion → Fetches document
 ```
 
+Cover letter generation follows the same pattern with its own semantic pipeline:
+
+```
+Client POST /api/ai/cover-letter
+  │
+  ├─ 1. Validate session + resume confirmation + usage limits
+  ├─ 2. Create AiTask record (status: PENDING)
+  ├─ 3. Send Inngest event ("cover-letter/generate")
+  └─ 4. Return task ID immediately
+        │
+        ▼
+Inngest Function (async)
+  │
+  ├─ step.run("mark-running")       → AiTask.status = RUNNING
+  ├─ step.run("semantic-analysis")   → Claude: identify pain points, map experiences, extract metrics
+  ├─ step.run("generate-narrative")  → Claude: generate voice-adapted cover letter (4 voice modes)
+  ├─ step.run("post-process")        → Deterministic rule engine (12 processors, 57 cliche blocks)
+  ├─ step.run("render-pdf")          → Markdown → HTML → PDF (Puppeteer)
+  ├─ step.run("upload-to-s3")        → Store PDF buffer in S3
+  ├─ step.run("save-document")       → Create GeneratedDocument record
+  └─ step.run("mark-succeeded")      → AiTask.status = SUCCEEDED
+```
+
 Each `step.run()` is independently retryable and idempotent - if the function crashes mid-execution, Inngest resumes from the last completed step without re-running prior work.
 
 ---
@@ -199,7 +281,53 @@ Phase 2: Content Generation (Claude Sonnet)
 
 This separation allows the generation model to make informed decisions about content priority rather than performing both analysis and writing in a single pass - reducing hallucination and improving section-level coherence.
 
-### 2. One-Page Governor with Adaptive Content Compression
+### 2. Two-Phase Cover Letter Generation with Voice Adaptation
+
+**Problem:** Generic cover letter generators produce bland, interchangeable documents. They either parrot the job description back or produce vague enthusiasm without connecting the candidate's specific achievements to the employer's actual needs. The result reads like every other AI-generated cover letter - formulaic openings, buzzword-laden bodies, and passive closings.
+
+**Solution:** Cover letter generation uses a two-phase Claude pipeline with voice adaptation and deterministic post-processing. Phase 1 (`semantic-analysis-v1`) identifies the company's primary pain point, maps the user's most relevant experiences to that pain point with bridge angles, extracts exact metrics from the user's bullet bank, and recommends a voice mode based on company signals. Phase 2 (`generate-v2`) receives this analysis and produces a narrative cover letter following a structured paragraph architecture: Hook (value statement connecting user to pain point), Bridge (specific achievement with System Friction pattern), Depth (breadth via second experience), and Close (call to value, not action).
+
+```
+Phase 1: Semantic Analysis (Claude Sonnet, temp=0.3)
+  Input:  Job description + user profile (experiences, projects, bullets)
+  Output: CoverLetterSemanticAnalysis {
+            primary_pain_point, role_intent, core_competencies,
+            top_experiences[{ title, company, score, bridge_angle }],
+            top_projects[{ name, score, bridge_angle }],
+            metrics_to_feature[], skills_to_weave[],
+            recommended_voice, company_insights
+          }
+
+Phase 2: Narrative Generation (Claude Sonnet, temp=0.7)
+  Input:  CoverLetterSemanticAnalysis + voice selection + user name
+  Output: { salutation, paragraphs[3-4], closing }
+
+Phase 3: Deterministic Post-Processing (no LLM)
+  Input:  Generated paragraphs + user profile metrics
+  Output: Cleaned paragraphs with 12 rule processors applied:
+          - Em dash/en dash removal
+          - 57 AI cliche blocks ("excited to apply", "hit the ground running")
+          - 14 flowery adjective removals ("innovative", "game-changing")
+          - 30% I/My sentence-start ceiling enforcement
+          - Vague metric replacement with exact profile numbers
+          - Hyphen sentence break conversion
+          - Mantra/slogan removal ("Analyze, Automate, Accelerate")
+          - Passive closing replacement
+          - Bracket placeholder removal
+```
+
+Four voice modes adapt tone and vocabulary to match company culture:
+
+| Voice            | Signals                                            | Characteristics                                      |
+| ---------------- | -------------------------------------------------- | ---------------------------------------------------- |
+| **Professional** | Corporate, finance, government, healthcare         | Formal, ROI-focused, stakeholder collaboration       |
+| **Casual**       | Startup, "fast-paced", "ship", early-stage         | Direct builder's tone, contractions, aha moments     |
+| **Friendly**     | Collaborative, nonprofit, education, social impact | Warm, process improvement, teammate impact           |
+| **Research**     | Academic, methodology, lab/university              | Precision, reasoning transparency, methodology focus |
+
+Metrics from the user's profile are treated as immutable - the post-processor verifies that exact numbers appear verbatim and injects missing metrics when vague qualifiers are detected. This prevents the LLM from paraphrasing "reduced API response time by 340ms" into "significantly improved performance."
+
+### 3. One-Page Governor with Adaptive Content Compression
 
 **Problem:** AI-generated resumes frequently exceed one page. Naive truncation destroys document coherence - removing the last section often drops the most relevant content. The system needs to intelligently compress content to fit A4 constraints while preserving the highest-impact information.
 
@@ -232,7 +360,7 @@ REEXPAND: Page-Fill Optimization
 
 A calibrated line counter (`CHARS_PER_LINE = 105`, `MAX_LINES = 64`) models the actual Puppeteer rendering output - accounting for font sizes (h1=24px, h2=13pt, body=11pt, bullets=10pt), A4 dimensions, and CSS margins. The governor never operates on rendered output; it predicts fit from structured content and regenerates markdown only to verify.
 
-### 3. Hybrid Fit Scoring with Weighted Multi-Signal Analysis
+### 4. Hybrid Fit Scoring with Weighted Multi-Signal Analysis
 
 **Problem:** A simple keyword-matching approach to job fit scoring produces misleading results - a job that matches 8/10 skills but requires 5 years of experience should score differently than one matching 6/10 skills at entry level. Users need scores that reflect their actual candidacy, not just vocabulary overlap.
 
@@ -259,11 +387,11 @@ Score → Bucket: ≥0.8 EXCELLENT | ≥0.6 GOOD | ≥0.4 FAIR | <0.4 POOR
 
 The job description is first parsed by GPT-4o-mini into a `ParsedJobDescription` (extracting required skills, preferred skills, experience level, domain, and job type), then the local scoring function runs deterministically against the user's profile. GPT-4o-mini then generates a natural-language explanation of the score. This separation keeps the expensive parsing step cacheable (saved to `Job.job_description_parsed`) while the scoring logic remains a pure, testable function with no AI dependency.
 
-### 4. Versioned Prompt Architecture with YAML Frontmatter
+### 5. Versioned Prompt Architecture with YAML Frontmatter
 
 **Problem:** Prompt engineering is iterative - prompts change frequently as output quality is tuned. Hardcoding prompts in application code makes iteration slow, version tracking impossible, and A/B testing impractical. The system needs prompts to be first-class artifacts with metadata.
 
-**Solution:** All 11 AI prompts live in `prompts/` as standalone markdown files with YAML frontmatter:
+**Solution:** All 13 AI prompts live in `prompts/` as standalone markdown files with YAML frontmatter:
 
 ```yaml
 ---
@@ -320,16 +448,19 @@ Klevr enforces data isolation through **application-level user scoping** - every
 ### Document Generation
 
 - **Tailored Resumes** - Two-phase AI generation produces resumes optimized for specific job descriptions, with semantic analysis guiding content selection and professional formatting
-- **Cover Letters** - AI-generated cover letters that reference the user's specific experience and the target role's requirements
+- **Cover Letters** - Two-phase Claude pipeline with semantic job analysis, voice selection (Professional, Casual, Friendly, Research), and deterministic post-processing. A 12-rule post-processor enforces writing quality - blocking AI cliches, capping I/My sentence starts at 30%, anchoring exact metrics from the user's profile, and converting passive closings. Narrative structure follows Hook-Bridge-Depth-Close architecture
 - **PDF Output** - Professional A4 documents rendered through Chromium with consistent typography and one-page enforcement
 - **Document Management** - Download, rename, soft-delete, and restore generated documents. Version history tracks prompt version and model used
 
 ### Profile Management
 
-- Structured profile with education, job experience entries, and project portfolio
-- Bullet bank for reusable accomplishment statements across applications
-- Skills management with tag-based input
-- Usage dashboard showing monthly AI operation consumption against limits
+- **Education CRUD** - Add, edit, reorder, and delete education entries with degree, major, GPA, honors, and relevant coursework fields. Display ordering for resume priority control
+- **Job Experience CRUD** - Full lifecycle management for work history entries with nested bullet management. Each experience tracks title, company, dates, location, and key metrics
+- **Project CRUD** - Portfolio management with nested bullet support, technology tags, links, and key metrics tracking
+- **Bullet Bank** - Reusable accomplishment statements with AI-powered categorization, favoriting, metric extraction, and tag-based organization. Bullets nest under experiences or projects, or stand alone
+- **Resume Upload** - Upload resumes via presigned S3 URLs or paste flow. AI parsing extracts structured data with intelligent deduplication against existing profile entries
+- **Skills Management** - Tag-based input with manual refinement
+- **Usage Dashboard** - Monthly AI operation consumption tracking against per-task limits
 
 ---
 
@@ -445,18 +576,19 @@ npm run test:ui       # Vitest browser UI
 
 ### Test Architecture
 
-| Category               | Files                        | What's Tested                                                    |
-| ---------------------- | ---------------------------- | ---------------------------------------------------------------- |
-| **AI Clients**         | `anthropic.test.ts`          | Prefilled JSON extraction, rate limiting, error handling         |
-| **Resume Engine**      | `resume-engine-v3.test.ts`   | Two-phase generation pipeline, structured output validation      |
-| **One-Page Governor**  | `one-page-governor.test.ts`  | Multi-pass compression, line counting, re-expansion logic        |
-| **Semantic Analysis**  | `semantic-analyzer.test.ts`  | Job description analysis, relevance scoring                      |
-| **Skills Matching**    | `skills-matcher.test.ts`     | Fuzzy matching, alias resolution, required vs. preferred scoring |
-| **Bullet Scoring**     | `bullet-scorer.test.ts`      | Metric detection (currency, percentage, multiplier, count, time) |
-| **Markdown Rendering** | `resume-to-markdown.test.ts` | Structured content to markdown conversion                        |
-| **PDF Rendering**      | `renderer.test.ts`           | React PDF component output validation                            |
-| **Error Classes**      | `errors.test.ts`             | AIError hierarchy, error serialization                           |
-| **Utilities**          | `utils.test.ts`              | Date formatting, month calculation, string helpers               |
+| Category                        | Files                                 | What's Tested                                                    |
+| ------------------------------- | ------------------------------------- | ---------------------------------------------------------------- |
+| **AI Clients**                  | `anthropic.test.ts`                   | Prefilled JSON extraction, rate limiting, error handling         |
+| **Resume Engine**               | `resume-engine-v3.test.ts`            | Two-phase generation pipeline, structured output validation      |
+| **One-Page Governor**           | `one-page-governor.test.ts`           | Multi-pass compression, line counting, re-expansion logic        |
+| **Semantic Analysis**           | `semantic-analyzer.test.ts`           | Job description analysis, relevance scoring                      |
+| **Skills Matching**             | `skills-matcher.test.ts`              | Fuzzy matching, alias resolution, required vs. preferred scoring |
+| **Bullet Scoring**              | `bullet-scorer.test.ts`               | Metric detection (currency, percentage, multiplier, count, time) |
+| **Cover Letter Post-Processor** | `cover-letter-post-processor.test.ts` | Cliche detection, metric anchoring, rhythm cap, hyphen breaks    |
+| **Markdown Rendering**          | `resume-to-markdown.test.ts`          | Structured content to markdown conversion                        |
+| **PDF Rendering**               | `renderer.test.ts`                    | React PDF component output validation                            |
+| **Error Classes**               | `errors.test.ts`                      | AIError hierarchy, error serialization                           |
+| **Utilities**                   | `utils.test.ts`                       | Date formatting, month calculation, string helpers               |
 
 ### Key Testing Patterns
 
@@ -473,7 +605,7 @@ These are deliberate trade-offs, not framework defaults:
 
 - **Asynchronous AI via Inngest, never synchronous** - Every AI operation (scoring, generation, research) runs as an Inngest background function with step-level idempotency. This means a user requesting a resume generation gets an immediate response with a task ID, and the heavy LLM work happens outside the request lifecycle. The trade-off is polling complexity on the client, but it eliminates request timeouts, enables automatic retries, and makes the system resilient to transient API failures from OpenAI and Anthropic.
 
-- **Dual-LLM strategy: Claude for generation, OpenAI for parsing** - Resume generation requires nuanced understanding of professional narrative and formatting, where Claude Sonnet excels. Job parsing and fit explanation are structured extraction tasks where GPT-4o-mini provides adequate quality at significantly lower cost and latency. Pinned model IDs (`claude-sonnet-4-5-20250929`, `gpt-4o-2024-05-13`, `gpt-4o-mini-2024-07-18`) prevent silent behavior changes when providers update their models.
+- **Dual-LLM strategy: Claude for generation, OpenAI for parsing** - Resume and cover letter generation require nuanced understanding of professional narrative, where Claude Sonnet excels. Job parsing and fit explanation are structured extraction tasks where GPT-4o-mini provides adequate quality at significantly lower cost and latency. Pinned model IDs (`claude-sonnet-4-5-20250929`, `gpt-4o-2024-05-13`, `gpt-4o-mini-2024-07-18`) prevent silent behavior changes when providers update their models.
 
 - **Application-layer user scoping, not database-level RLS** - Unlike a multi-tenant SaaS with shared tables, Klevr scopes every query by `user_id` at the Prisma call site. This is more explicit than Row-Level Security policies and easier to audit - grep for `user_id` in any query to verify scoping. The trade-off is that a missing `where: { user_id }` is a bug rather than a policy violation, but this is enforced as a codebase invariant through code review and testing conventions.
 
@@ -514,6 +646,10 @@ app/
 │   ├── documents/       Generated document download, rename, delete, restore
 │   ├── jobs/            Job CRUD and Adzuna search integration
 │   ├── profile/         Profile management (basics, skills, preferences, projects)
+│   │   ├── education/   Education CRUD with display ordering
+│   │   ├── experiences/ Job experience CRUD with nested bullet management
+│   │   ├── bullets/     Individual bullet update and delete
+│   │   └── resumes/     Resume upload CRUD with presigned URLs
 │   ├── resume/          Resume upload, parse, confirm, update
 │   └── settings/        Usage tracking and account deletion
 └── auth/callback/       Auth0 callback handler
@@ -521,7 +657,7 @@ app/
 components/
 ├── ui/                  shadcn/ui primitives (button, dialog, form, select, etc.)
 ├── dashboard/           Pipeline view, stat cards, filter bar, application cards
-├── jobs/                Job detail tabs, fit assessment, documents list, discovery
+├── jobs/                Job detail tabs, fit assessment, documents list, discovery, voice selection modal
 ├── profile/             Resume editor, bullet bank, experience/project editors
 ├── forms/               Reusable form components (file upload, skills input, etc.)
 ├── layout/              Navbar, sidebar, mobile navigation
@@ -538,6 +674,10 @@ lib/
 ├── skills-matcher.ts    Fuzzy skills matching with alias resolution
 ├── semantic-analyzer.ts Job description semantic analysis
 ├── resume-engine-v3.ts  Two-phase resume generation pipeline
+├── cover-letter-engine.ts  Two-phase cover letter generation with voice adaptation
+├── cover-letter-post-processor.ts  Deterministic 12-rule writing quality enforcement
+├── cover-letter-types.ts   Type definitions for cover letter pipeline
+├── resume-import.ts     Resume upload parsing with profile deduplication
 ├── one-page-governor.ts Adaptive content compression for A4 constraints
 ├── ai-tasks.ts          AI task lifecycle management
 ├── usage.ts             Monthly usage tracking and limit enforcement
@@ -559,12 +699,12 @@ inngest/
 prompts/                 AI prompt templates (markdown + YAML frontmatter)
 ├── resume/              Resume parsing, generation (v1, v3), semantic analysis
 ├── scoring/             Job description parsing, fit explanation
-├── cover-letter/        Cover letter generation
+├── cover-letter/        Cover letter generation (v1, v2) and semantic analysis
 ├── bullets/             Bullet enhancement and suggestion
 └── research/            Company research
 
 prisma/
-├── schema.prisma        16-table schema with comprehensive indexing
+├── schema.prisma        19-table schema with comprehensive indexing
 └── migrations/          Sequential SQL migrations
 
 __tests__/helpers/       Test infrastructure

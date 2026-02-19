@@ -7,11 +7,11 @@ const updateEducationSchema = z.object({
   school: z.string().min(1).max(200).optional(),
   degree: z.string().min(1).max(200).optional(),
   major: z.string().max(200).or(z.literal('')).nullable().optional(),
-  graduation_date: z.string().min(1).max(50).optional(),
+  graduation_date: z.string().min(1).max(100).optional(),
   gpa: z.string().max(10).or(z.literal('')).nullable().optional(),
   location: z.string().max(200).or(z.literal('')).nullable().optional(),
-  relevant_coursework: z.array(z.string().max(200)).max(30).optional(),
-  honors: z.array(z.string().max(200)).max(20).optional(),
+  relevant_coursework: z.array(z.string().max(200)).max(50).optional(),
+  honors: z.array(z.string().max(200)).max(50).optional(),
   display_order: z.number().int().optional(),
 })
 

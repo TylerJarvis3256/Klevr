@@ -185,12 +185,22 @@ export function generateResumeMarkdown(
 }
 
 /**
+ * Structured cover letter content (V2 engine).
+ */
+export interface CoverLetterContent {
+  salutation: string
+  paragraphs: string[]
+  closing: string
+}
+
+/**
  * Generates a formatted Markdown string for a cover letter.
+ * Accepts either a plain string (V1) or structured content (V2).
  */
 export function generateCoverLetterMarkdown(
-  content: string,
+  content: string | CoverLetterContent,
   userInfo: { name: string; email: string; phone?: string },
-  jobInfo: { title: string; company: string }
+  jobInfo: { title: string; company: string; recipientName?: string }
 ): string {
   const lines: string[] = []
 
@@ -200,23 +210,56 @@ export function generateCoverLetterMarkdown(
   if (userInfo.phone) contactParts.push(userInfo.phone)
   lines.push(contactParts.join(' | '))
   lines.push('')
+  lines.push('')
 
-  // Date
-  lines.push(new Date().toLocaleDateString())
+  // Date (full month name format)
+  const now = new Date()
+  const months = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ]
+  lines.push(`${months[now.getMonth()]} ${now.getDate()}, ${now.getFullYear()}`)
+  lines.push('')
   lines.push('')
 
   // Recipient
-  lines.push('Hiring Manager')
+  lines.push(jobInfo.recipientName ?? 'Hiring Manager')
   lines.push(jobInfo.company)
+  lines.push(`Re: ${jobInfo.title}`)
+  lines.push('')
   lines.push('')
 
-  // Body
-  lines.push(content)
-  lines.push('')
+  if (typeof content === 'string') {
+    // V1: plain text body
+    lines.push(content)
+    lines.push('')
+    lines.push('Sincerely,')
+    lines.push('')
+    lines.push(userInfo.name)
+  } else {
+    // V2: structured content with salutation + paragraphs + closing
+    lines.push(content.salutation)
+    lines.push('')
 
-  // Signature
-  lines.push('Sincerely,')
-  lines.push(userInfo.name)
+    for (const paragraph of content.paragraphs) {
+      lines.push(paragraph)
+      lines.push('')
+    }
+
+    lines.push('Sincerely,')
+    lines.push(userInfo.name)
+  }
+
   lines.push('')
 
   return lines.join('\n').trimEnd() + '\n'

@@ -4,11 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 const createExperienceSchema = z.object({
-  title: z.string().min(1, 'Job title is required').max(200),
+  title: z.string().min(1, 'Title is required').max(200),
   company: z.string().min(1, 'Company is required').max(200),
   location: z.string().max(200).or(z.literal('')).nullable().optional(),
-  start_date: z.string().min(1, 'Start date is required').max(50),
-  end_date: z.string().max(50).or(z.literal('')).nullable().optional(),
+  start_date: z.string().min(1, 'Start date is required').max(100),
+  end_date: z.string().max(100).or(z.literal('')).nullable().optional(),
   is_current: z.boolean().default(false),
   description: z.string().max(2000).or(z.literal('')).nullable().optional(),
   key_metrics: z.string().max(1000).or(z.literal('')).nullable().optional(),

@@ -4,9 +4,9 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 const updateBulletSchema = z.object({
-  text: z.string().min(1).max(500).optional(),
-  tags: z.array(z.string().max(50)).max(10).optional(),
-  priority: z.number().int().optional(),
+  text: z.string().min(1).max(2000).optional(),
+  tags: z.array(z.string().max(100)).max(20).optional(),
+  priority: z.number().int().min(0).max(10).optional(),
   is_favorite: z.boolean().optional(),
   ai_category: z.string().max(100).nullable().optional(),
 })

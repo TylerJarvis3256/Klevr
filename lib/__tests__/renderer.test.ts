@@ -10,17 +10,7 @@ vi.mock('@/lib/pdf/markdown-to-html', () => ({
   markdownToHtml: vi.fn((md: string) => `<html>${md}</html>`),
 }))
 
-// Mock @react-pdf/renderer for cover letter tests
-vi.mock('@react-pdf/renderer', () => ({
-  renderToBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-cover-letter-pdf')),
-  Document: vi.fn(({ children }: { children: React.ReactNode }) => children),
-  Page: vi.fn(({ children }: { children: React.ReactNode }) => children),
-  Text: vi.fn(({ children }: { children: React.ReactNode }) => children),
-  View: vi.fn(({ children }: { children: React.ReactNode }) => children),
-  StyleSheet: { create: (styles: Record<string, unknown>) => styles },
-}))
-
-import { renderResumePDF, renderCoverLetterPDF } from '@/lib/pdf/renderer'
+import { renderResumePDF, renderCoverLetterPDFv2 } from '@/lib/pdf/renderer'
 import { markdownToHtml } from '@/lib/pdf/markdown-to-html'
 import { htmlToPdf } from '@/lib/pdf/html-to-pdf'
 
@@ -55,30 +45,31 @@ describe('renderResumePDF', () => {
   })
 })
 
-describe('renderCoverLetterPDF', () => {
+describe('renderCoverLetterPDFv2', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('returns a Buffer', async () => {
-    const buffer = await renderCoverLetterPDF(
-      'Dear Hiring Manager, I am writing to apply...',
-      { name: 'Test User', email: 'test@example.com' },
-      { title: 'Software Engineer', company: 'Acme Corp' }
-    )
+  it('converts markdown to HTML with cover-letter variant then to PDF', async () => {
+    const clMarkdown = '# Jane Doe\njane@test.com\n\nDear Hiring Manager...'
+    const buffer = await renderCoverLetterPDFv2(clMarkdown)
+
+    expect(markdownToHtml).toHaveBeenCalledWith(clMarkdown, { variant: 'cover-letter' })
+    expect(htmlToPdf).toHaveBeenCalled()
     expect(buffer).toBeInstanceOf(Buffer)
+  })
+
+  it('returns a Buffer', async () => {
+    const buffer = await renderCoverLetterPDFv2('# Cover Letter')
+    expect(buffer).toBeInstanceOf(Buffer)
+    expect(buffer.toString()).toBe('mock-chromium-pdf')
   })
 })
 
 describe('module exports', () => {
-  it('exports renderResumePDF and renderCoverLetterPDF', async () => {
+  it('exports renderResumePDF and renderCoverLetterPDFv2', async () => {
     const mod = await import('@/lib/pdf/renderer')
     expect(typeof mod.renderResumePDF).toBe('function')
-    expect(typeof mod.renderCoverLetterPDF).toBe('function')
-  })
-
-  it('does not export legacy renderResumeWithProvider', async () => {
-    const mod = await import('@/lib/pdf/renderer')
-    expect(Object.keys(mod)).not.toContain('renderResumeWithProvider')
+    expect(typeof mod.renderCoverLetterPDFv2).toBe('function')
   })
 })

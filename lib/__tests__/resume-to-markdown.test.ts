@@ -332,4 +332,27 @@ describe('generateCoverLetterMarkdown', () => {
     // Should not have a pipe separator after email when no phone
     expect(md).not.toContain('john@test.com |')
   })
+
+  it('accepts V2 structured content with salutation, paragraphs, and closing', () => {
+    const md = generateCoverLetterMarkdown(
+      {
+        salutation: 'Dear Hiring Team,',
+        paragraphs: [
+          'I built a REST API serving 10K users.',
+          'My experience in distributed systems aligns with your needs.',
+        ],
+        closing: 'Sincerely,',
+      },
+      { name: 'Jane Doe', email: 'jane@example.com', phone: '555-0100' },
+      { title: 'Software Engineer', company: 'Acme Corp' }
+    )
+
+    expect(md).toContain('# Jane Doe')
+    expect(md).toContain('jane@example.com | 555-0100')
+    expect(md).toContain('Dear Hiring Team,')
+    expect(md).toContain('I built a REST API serving 10K users.')
+    expect(md).toContain('My experience in distributed systems aligns with your needs.')
+    expect(md).toContain('Sincerely,')
+    expect(md).toContain('Jane Doe')
+  })
 })

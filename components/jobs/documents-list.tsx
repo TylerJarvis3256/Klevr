@@ -8,7 +8,9 @@ import { formatDate } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { DocumentPreviewDialog } from './document-preview-dialog'
+import { VoiceSelectionModal } from './voice-selection-modal'
 import { useSSETask } from '@/lib/hooks/use-sse-task'
+import type { CoverLetterVoiceSelection } from '@/lib/cover-letter-types'
 
 interface DocumentsListProps {
   documents: GeneratedDocument[]
@@ -25,6 +27,7 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
   const [previewOpen, setPreviewOpen] = useState(false)
   const [editingDocId, setEditingDocId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false)
 
   // Find in-progress resume and cover letter generation tasks
   const resumeTask = documentTasks.find(
@@ -76,13 +79,14 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
     }
   }
 
-  const handleGenerateCoverLetter = async () => {
+  const handleGenerateCoverLetter = async (voice: CoverLetterVoiceSelection) => {
+    setVoiceModalOpen(false)
     setGeneratingCoverLetter(true)
     try {
       const response = await fetch('/api/ai/cover-letter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationId }),
+        body: JSON.stringify({ applicationId, voice }),
       })
 
       if (!response.ok) {
@@ -230,7 +234,7 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
             )}
           </Button>
           <Button
-            onClick={handleGenerateCoverLetter}
+            onClick={() => setVoiceModalOpen(true)}
             disabled={isGeneratingCoverLetter}
             variant="default"
             size="sm"
@@ -454,6 +458,14 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
           Monthly limits: 30 resumes, 30 cover letters • Documents are stored for 90 days
         </p>
       </div>
+
+      {/* Voice Selection Modal */}
+      <VoiceSelectionModal
+        open={voiceModalOpen}
+        onOpenChange={setVoiceModalOpen}
+        onConfirm={handleGenerateCoverLetter}
+        isGenerating={generatingCoverLetter}
+      />
 
       {/* Preview Dialog */}
       <DocumentPreviewDialog

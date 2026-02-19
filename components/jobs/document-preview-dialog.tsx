@@ -37,9 +37,31 @@ export function DocumentPreviewDialog({
   const handleCopyText = async () => {
     if (!isCoverLetter) return
 
-    const coverLetterData = document.structured_data as { content: string } | string
-    const text = typeof coverLetterData === 'string' ? coverLetterData : coverLetterData.content
-    await navigator.clipboard.writeText(text)
+    const coverLetterData = document.structured_data as Record<string, unknown>
+
+    // V2: structured content with paragraphs
+    if (coverLetterData?.content && typeof coverLetterData.content === 'object') {
+      const content = coverLetterData.content as {
+        salutation: string
+        paragraphs: string[]
+        closing: string
+      }
+      const text = [
+        content.salutation,
+        '',
+        ...content.paragraphs.flatMap(p => [p, '']),
+        content.closing,
+      ].join('\n')
+      await navigator.clipboard.writeText(text.trim())
+    } else {
+      // V1: plain text content
+      const text =
+        typeof coverLetterData === 'string'
+          ? coverLetterData
+          : (coverLetterData?.content as string) || ''
+      await navigator.clipboard.writeText(text)
+    }
+
     setCopied(true)
     toast.success('Cover letter copied to clipboard!')
     setTimeout(() => setCopied(false), 2000)
@@ -77,15 +99,7 @@ export function DocumentPreviewDialog({
         </DialogHeader>
 
         <div className="mt-6">
-          {isCoverLetter && (
-            <CoverLetterPreview
-              text={
-                typeof document.structured_data === 'string'
-                  ? document.structured_data
-                  : (document.structured_data as { content: string }).content
-              }
-            />
-          )}
+          {isCoverLetter && <CoverLetterPreviewSwitch structuredData={document.structured_data} />}
           {isResume && <ResumePreviewSwitch structuredData={document.structured_data} />}
         </div>
       </DialogContent>
@@ -93,7 +107,17 @@ export function DocumentPreviewDialog({
   )
 }
 
-function CoverLetterPreview({ text }: { text: string }) {
+function CoverLetterPreviewSwitch({ structuredData }: { structuredData: unknown }) {
+  const data = structuredData as Record<string, unknown>
+
+  // V2: has markdown field from V2 engine
+  if (data?.markdown && typeof data.markdown === 'string') {
+    return <MarkdownResumePreview markdown={data.markdown} />
+  }
+
+  // V1: plain text content
+  const text = typeof data === 'string' ? data : (data?.content as string) || ''
+
   return (
     <div className="prose prose-sm max-w-none">
       <div className="whitespace-pre-wrap font-sans text-secondary leading-relaxed bg-primary/20 rounded-xl p-6 border border-secondary/10">

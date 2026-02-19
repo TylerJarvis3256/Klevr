@@ -4,14 +4,14 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 const createEducationSchema = z.object({
-  school: z.string().min(1, 'School name is required').max(200),
+  school: z.string().min(1, 'School is required').max(200),
   degree: z.string().min(1, 'Degree is required').max(200),
   major: z.string().max(200).or(z.literal('')).nullable().optional(),
-  graduation_date: z.string().min(1, 'Graduation date is required').max(50),
+  graduation_date: z.string().min(1, 'Graduation date is required').max(100),
   gpa: z.string().max(10).or(z.literal('')).nullable().optional(),
   location: z.string().max(200).or(z.literal('')).nullable().optional(),
-  relevant_coursework: z.array(z.string().max(200)).max(30).default([]),
-  honors: z.array(z.string().max(200)).max(20).default([]),
+  relevant_coursework: z.array(z.string().max(200)).max(50).default([]),
+  honors: z.array(z.string().max(200)).max(50).default([]),
   display_order: z.number().int().optional(),
 })
 

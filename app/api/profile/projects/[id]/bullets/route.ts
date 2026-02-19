@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
 const createBulletSchema = z.object({
-  text: z.string().min(1, 'Bullet text is required').max(500),
-  tags: z.array(z.string().max(50)).max(10).default([]),
-  priority: z.number().int().optional(),
+  text: z.string().min(1, 'Text is required').max(2000),
+  tags: z.array(z.string().max(100)).max(20).default([]),
+  priority: z.number().int().min(0).max(10).default(0),
   is_favorite: z.boolean().default(false),
+  ai_category: z.string().max(100).nullable().optional(),
 })
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

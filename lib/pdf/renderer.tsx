@@ -1,69 +1,21 @@
-import { renderToBuffer } from '@react-pdf/renderer'
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { markdownToHtml } from './markdown-to-html'
 import { htmlToPdf } from './html-to-pdf'
-import React from 'react'
 
 /**
  * Render a resume PDF from markdown (V3 pipeline).
- * Converts markdown → HTML → PDF via headless Chromium.
+ * Converts markdown -> HTML -> PDF via headless Chromium.
  */
 export async function renderResumePDF(markdown: string): Promise<Buffer> {
   const html = markdownToHtml(markdown)
   return htmlToPdf(html)
 }
 
-export async function renderCoverLetterPDF(
-  content: string,
-  userInfo: {
-    name: string
-    email: string
-    phone?: string
-  },
-  jobInfo: {
-    title: string
-    company: string
-  }
-): Promise<Buffer> {
-  const styles = StyleSheet.create({
-    page: { padding: 60, fontSize: 11, lineHeight: 1.6 },
-    header: { marginBottom: 30 },
-    name: { fontSize: 16, fontWeight: 'bold' },
-    contact: { fontSize: 10, color: '#666666', marginTop: 5 },
-    date: { marginBottom: 20, fontSize: 10 },
-    body: { fontSize: 11, textAlign: 'justify' },
-    signature: { marginTop: 20 },
-  })
-
-  const CoverLetterDoc = (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.name}>{userInfo.name}</Text>
-          <Text style={styles.contact}>
-            {userInfo.email}
-            {userInfo.phone && ` • ${userInfo.phone}`}
-          </Text>
-        </View>
-
-        {/* Date */}
-        <Text style={styles.date}>{new Date().toLocaleDateString()}</Text>
-
-        {/* Recipient */}
-        <Text style={styles.body}>{`Hiring Manager\n${jobInfo.company}\n\n`}</Text>
-
-        {/* Body content */}
-        <Text style={styles.body}>{content}</Text>
-
-        {/* Signature */}
-        <Text style={{ ...styles.body, ...styles.signature }}>
-          {`\n\nSincerely,\n${userInfo.name}`}
-        </Text>
-      </Page>
-    </Document>
-  )
-
-  const buffer = await renderToBuffer(CoverLetterDoc)
-  return Buffer.from(buffer)
+/**
+ * Render a cover letter PDF from markdown (V2 pipeline).
+ * Uses the same markdown -> HTML -> PDF pipeline as resumes,
+ * with an optional cover-letter CSS variant.
+ */
+export async function renderCoverLetterPDFv2(markdown: string): Promise<Buffer> {
+  const html = markdownToHtml(markdown, { variant: 'cover-letter' })
+  return htmlToPdf(html)
 }

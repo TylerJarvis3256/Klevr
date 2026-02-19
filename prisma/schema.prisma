@@ -249,6 +249,29 @@ model Bullet {
   @@index([is_favorite])
 }
 
+model ResumeUpload {
+  id            String    @id @default(cuid())
+  user_id       String
+  file_name     String
+  file_url      String?
+  file_type     String
+  file_size     Int
+  uploaded_at   DateTime  @default(now())
+  parsed_at     DateTime?
+  parsed_resume Json?
+  parsing_error String?
+  deleted_at    DateTime?
+  source        String    @default("PROFILE")
+  storage_url   String?
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  User          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([created_at])
+  @@index([deleted_at])
+  @@index([uploaded_at])
+}
+
 model ActivityLog {
   id             String       @id @default(cuid())
   user_id        String
@@ -338,29 +361,6 @@ model Notification {
 
   @@index([user_id, created_at])
   @@index([user_id, read_at])
-}
-
-model ResumeUpload {
-  id            String    @id @default(cuid())
-  user_id       String
-  file_name     String
-  file_url      String?
-  file_type     String
-  file_size     Int
-  uploaded_at   DateTime  @default(now())
-  parsed_at     DateTime?
-  parsed_resume Json?
-  parsing_error String?
-  deleted_at    DateTime?
-  source        String    @default("PROFILE")
-  storage_url   String?
-  created_at    DateTime  @default(now()) @db.Timestamptz(6)
-  User          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([user_id])
-  @@index([created_at])
-  @@index([deleted_at])
-  @@index([uploaded_at])
 }
 
 model AdzunaRequestLog {
