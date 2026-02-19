@@ -355,10 +355,10 @@ Step C: Full Entry Removal
 
 REEXPAND: Page-Fill Optimization
   → If compression freed excess space, restore highest-value pruned
-    bullets until reaching 95% page density
+    bullets until reaching 98% page density
 ```
 
-A calibrated line counter (`CHARS_PER_LINE = 105`, `MAX_LINES = 64`) models the actual Puppeteer rendering output - accounting for font sizes (h1=24px, h2=13pt, body=11pt, bullets=10pt), A4 dimensions, and CSS margins. The governor never operates on rendered output; it predicts fit from structured content and regenerates markdown only to verify.
+A block-based height estimator (`estimateHeightPx`) models the actual Puppeteer rendering output with a two-phase approach. Phase 1 parses markdown into logical blocks (h1, h2, bullet groups, and paragraphs), correctly identifying that consecutive non-blank lines - such as skills categories, education degree+school, and experience title+company - render as a single `<p>` element in HTML. Phase 2 calculates pixel height per block using separated line-height and margin constants: h1 (29px line + 4px margin), h2 (21px line + 12-16px top margin + 3px padding + 1px border + 8px bottom margin), body text (21px/line at 100 CPL), italic text (19px/line at 115 CPL), and bullets (16px/line at 110 CPL). Margins are applied once per element rather than per wrapped line, and the first h2 after the header receives a reduced 12px top margin matching the CSS `h1 + p + h2` rule. The estimator sums pixel heights against the real A4 page budget (1043px minus 10px safety buffer) rather than counting abstract lines. The governor never operates on rendered output; it predicts fit from structured content and regenerates markdown only to verify.
 
 ### 4. Hybrid Fit Scoring with Weighted Multi-Signal Analysis
 
@@ -576,19 +576,19 @@ npm run test:ui       # Vitest browser UI
 
 ### Test Architecture
 
-| Category                        | Files                                 | What's Tested                                                    |
-| ------------------------------- | ------------------------------------- | ---------------------------------------------------------------- |
-| **AI Clients**                  | `anthropic.test.ts`                   | Prefilled JSON extraction, rate limiting, error handling         |
-| **Resume Engine**               | `resume-engine-v3.test.ts`            | Two-phase generation pipeline, structured output validation      |
-| **One-Page Governor**           | `one-page-governor.test.ts`           | Multi-pass compression, line counting, re-expansion logic        |
-| **Semantic Analysis**           | `semantic-analyzer.test.ts`           | Job description analysis, relevance scoring                      |
-| **Skills Matching**             | `skills-matcher.test.ts`              | Fuzzy matching, alias resolution, required vs. preferred scoring |
-| **Bullet Scoring**              | `bullet-scorer.test.ts`               | Metric detection (currency, percentage, multiplier, count, time) |
-| **Cover Letter Post-Processor** | `cover-letter-post-processor.test.ts` | Cliche detection, metric anchoring, rhythm cap, hyphen breaks    |
-| **Markdown Rendering**          | `resume-to-markdown.test.ts`          | Structured content to markdown conversion                        |
-| **PDF Rendering**               | `renderer.test.ts`                    | React PDF component output validation                            |
-| **Error Classes**               | `errors.test.ts`                      | AIError hierarchy, error serialization                           |
-| **Utilities**                   | `utils.test.ts`                       | Date formatting, month calculation, string helpers               |
+| Category                        | Files                                 | What's Tested                                                       |
+| ------------------------------- | ------------------------------------- | ------------------------------------------------------------------- |
+| **AI Clients**                  | `anthropic.test.ts`                   | Prefilled JSON extraction, rate limiting, error handling            |
+| **Resume Engine**               | `resume-engine-v3.test.ts`            | Two-phase generation pipeline, structured output validation         |
+| **One-Page Governor**           | `one-page-governor.test.ts`           | Multi-pass compression, pixel height estimation, re-expansion logic |
+| **Semantic Analysis**           | `semantic-analyzer.test.ts`           | Job description analysis, relevance scoring                         |
+| **Skills Matching**             | `skills-matcher.test.ts`              | Fuzzy matching, alias resolution, required vs. preferred scoring    |
+| **Bullet Scoring**              | `bullet-scorer.test.ts`               | Metric detection (currency, percentage, multiplier, count, time)    |
+| **Cover Letter Post-Processor** | `cover-letter-post-processor.test.ts` | Cliche detection, metric anchoring, rhythm cap, hyphen breaks       |
+| **Markdown Rendering**          | `resume-to-markdown.test.ts`          | Structured content to markdown conversion                           |
+| **PDF Rendering**               | `renderer.test.ts`                    | React PDF component output validation                               |
+| **Error Classes**               | `errors.test.ts`                      | AIError hierarchy, error serialization                              |
+| **Utilities**                   | `utils.test.ts`                       | Date formatting, month calculation, string helpers                  |
 
 ### Key Testing Patterns
 
@@ -609,7 +609,7 @@ These are deliberate trade-offs, not framework defaults:
 
 - **Application-layer user scoping, not database-level RLS** - Unlike a multi-tenant SaaS with shared tables, Klevr scopes every query by `user_id` at the Prisma call site. This is more explicit than Row-Level Security policies and easier to audit - grep for `user_id` in any query to verify scoping. The trade-off is that a missing `where: { user_id }` is a bug rather than a policy violation, but this is enforced as a codebase invariant through code review and testing conventions.
 
-- **Markdown as the intermediate resume format** - Rather than generating HTML or PDF directly, the AI produces markdown which is converted to HTML (via `marked` with inline CSS) and then to PDF (via Puppeteer). This creates a clean separation: the AI controls content and structure, the HTML template controls visual styling, and Puppeteer handles pixel-perfect rendering. The governor operates on markdown line counts, not pixel measurements, which is faster and more predictable.
+- **Markdown as the intermediate resume format** - Rather than generating HTML or PDF directly, the AI produces markdown which is converted to HTML (via `marked` with inline CSS) and then to PDF (via Puppeteer). This creates a clean separation: the AI controls content and structure, the HTML template controls visual styling, and Puppeteer handles pixel-perfect rendering. The governor estimates pixel height from markdown element types (mapping each to its actual CSS height), then compares against the real A4 page budget to predict fit without rendering.
 
 - **Resume confirmation as an AI feature gate** - The `parsed_resume_confirmed_at` field on `Profile` gates all AI operations. Until the user reviews and explicitly confirms their parsed resume, no AI tasks can be created. This prevents the system from generating documents based on incorrectly parsed input (e.g., a malformed PDF that extracted garbled text). The confirmation step also serves as a natural onboarding checkpoint.
 

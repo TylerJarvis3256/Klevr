@@ -20,6 +20,9 @@ vi.mock('@/lib/anthropic', () => ({
 
 import {
   countRenderedLines,
+  estimateHeightPx,
+  PAGE_HEIGHT_PX,
+  SAFETY_BUFFER_PX,
   consolidateRedundantProjects,
   compressSoftSkills,
   pruneLowestScoredEntry,
@@ -247,27 +250,145 @@ function defaultAnalysis(overrides: Record<string, unknown> = {}): SemanticJDAna
   return createSemanticAnalysis(overrides) as unknown as SemanticJDAnalysis
 }
 
+// ─── estimateHeightPx ────────────────────────────────
+
+describe('estimateHeightPx', () => {
+  it('empty lines cause paragraph separation (extra margin, no direct height)', () => {
+    // Without blank line: one paragraph block → 21 + 21 + 4 = 46px
+    const joined = 'Hello\nWorld'
+    expect(estimateHeightPx(joined)).toBe(46)
+
+    // With blank line: two separate paragraphs → (21 + 4) + (21 + 4) = 50px
+    const separated = 'Hello\n\nWorld'
+    expect(estimateHeightPx(separated)).toBe(50)
+
+    // Difference is one extra margin (4px), not a line-height
+    expect(estimateHeightPx(separated) - estimateHeightPx(joined)).toBe(4)
+  })
+
+  it('h2 headings cost more than body paragraphs', () => {
+    const h2 = '## Experience'
+    const body = 'Some body text here'
+    expect(estimateHeightPx(h2)).toBeGreaterThan(estimateHeightPx(body))
+  })
+
+  it('body paragraphs cost more than bullet items', () => {
+    const body = 'Some body text here'
+    const bullet = '- Some bullet text here'
+    expect(estimateHeightPx(body)).toBeGreaterThan(estimateHeightPx(bullet))
+  })
+
+  it('wraps long body lines at body CPL with single margin', () => {
+    const shortLine = 'a'.repeat(90) // under 100 CPL = 1 line
+    const longLine = 'a'.repeat(190) // 190/100 = 2 wrapped lines
+    // Short: 1 visual line → 21 + 4 margin = 25px
+    expect(estimateHeightPx(shortLine)).toBe(25)
+    // Long: 2 visual lines → 21*2 + 4 margin = 46px (margin applied once, not per line)
+    expect(estimateHeightPx(longLine)).toBe(46)
+  })
+
+  it('tracks list boundary margins', () => {
+    const singleBullet = '- First bullet'
+    const twoBullets = '- First bullet\n- Second bullet'
+    const diff = estimateHeightPx(twoBullets) - estimateHeightPx(singleBullet)
+    // Second bullet adds LI height (18px), not LI_FIRST (16px)
+    expect(diff).toBe(18)
+  })
+
+  it('em paragraphs cost less than body paragraphs', () => {
+    const body = 'Regular paragraph text'
+    const em = '*Italic paragraph text*'
+    expect(estimateHeightPx(em)).toBeLessThan(estimateHeightPx(body))
+  })
+
+  it('joins consecutive non-blank lines into one paragraph block (skills)', () => {
+    // Skills categories are consecutive lines without blank lines between them.
+    // They render as ONE <p> in HTML, so only one margin-bottom.
+    const skills = [
+      '**Languages:** TypeScript, Python, Java',
+      '**Frameworks & Libraries:** React, Node.js',
+      '**Tools & Cloud:** AWS, Docker, Kubernetes',
+    ].join('\n')
+
+    // One paragraph block: 3 lines * 21px + 4px margin = 67px
+    expect(estimateHeightPx(skills)).toBe(67)
+
+    // Compare to separated paragraphs (blank lines between each)
+    const separated = [
+      '**Languages:** TypeScript, Python, Java',
+      '',
+      '**Frameworks & Libraries:** React, Node.js',
+      '',
+      '**Tools & Cloud:** AWS, Docker, Kubernetes',
+    ].join('\n')
+
+    // Three separate paragraph blocks: 3 * (21 + 4) = 75px
+    expect(estimateHeightPx(separated)).toBe(75)
+  })
+
+  it('joins education degree + school lines into one paragraph block', () => {
+    // In resume markdown, degree and school have no blank line between them
+    const edu = '**BS Computer Science**\n*MIT | May 2020 | GPA: 3.9*'
+
+    // One paragraph block: body line (21px) + em line (19px) + 4px margin = 44px
+    expect(estimateHeightPx(edu)).toBe(44)
+  })
+
+  it('joins experience title + company lines into one paragraph block', () => {
+    // Title and company/dates are consecutive lines (no blank line)
+    const expHeader =
+      '**Senior Software Engineer**\n*Tech Corp | San Francisco, CA* | Jan 2023 - Present'
+
+    // One paragraph block: 2 body lines (both treated as BODY since
+    // second line is not fully italic) * 21px + 4px margin = 46px
+    expect(estimateHeightPx(expHeader)).toBe(46)
+  })
+
+  it('uses reduced top margin for first h2 after h1 + paragraph', () => {
+    // h1 + p + h2 CSS selector: first h2 gets 12px top margin instead of 16px
+    const withH1 = '# Jane Doe\njane@test.com\n\n## EDUCATION'
+    const standaloneH2 = '## EDUCATION'
+
+    const h2Standalone = estimateHeightPx(standaloneH2)
+    // Standalone h2: 16 top + 21 text + 3 pad + 1 border + 8 bottom = 49px
+    expect(h2Standalone).toBe(49)
+
+    const fullHeader = estimateHeightPx(withH1)
+    // h1 (29 + 4) + paragraph (21 + 4) + h2 with reduced margin (12 + 21 + 3 + 1 + 8) = 103px
+    expect(fullHeader).toBe(103)
+
+    // Second h2 should use full margin
+    const twoH2s = '# Jane Doe\njane@test.com\n\n## EDUCATION\n\n## SKILLS'
+    const withTwoH2s = estimateHeightPx(twoH2s)
+    // 103px (from above) + 49px (full margin h2) = 152px
+    expect(withTwoH2s).toBe(152)
+  })
+})
+
 // ─── countRenderedLines ──────────────────────────────
 
 describe('countRenderedLines', () => {
-  it('counts single short lines as 1 each', () => {
+  it('returns pixel height / reference line height (ceil)', () => {
     const md = 'Hello\nWorld'
-    expect(countRenderedLines(md)).toBe(2)
+    const expectedPx = estimateHeightPx(md)
+    expect(countRenderedLines(md)).toBe(Math.ceil(expectedPx / 21))
   })
 
-  it('counts empty lines as 1', () => {
+  it('treats empty lines as 0 (structural separators)', () => {
     const md = 'Hello\n\nWorld'
-    expect(countRenderedLines(md)).toBe(3)
+    // Empty lines produce 0px, so same as without empty
+    expect(countRenderedLines(md)).toBe(countRenderedLines('Hello\nWorld'))
   })
 
-  it('wraps long lines based on charsPerLine', () => {
-    const longLine = 'a'.repeat(170) // 170 chars at 105 per line = 2 lines
-    expect(countRenderedLines(longLine)).toBe(2)
+  it('wraps long lines based on element-specific CPL', () => {
+    const longLine = 'a'.repeat(190) // 190/100 = 2 wrapped body lines
+    // 21*2 + 4 margin = 46px → ceil(46/21) = 3
+    expect(countRenderedLines(longLine)).toBe(3)
   })
 
   it('handles mixed content correctly', () => {
-    const md = 'Short line\n\n' + 'a'.repeat(170) + '\nAnother line'
-    // "Short line" = 1, "" = 1, 170-char = 2, "Another line" = 1 → 5
+    const md = 'Short line\n\n' + 'a'.repeat(190) + '\nAnother line'
+    // "Short line" = 25px, 190-char + "Another line" = one paragraph (21*2 + 21 + 4) = 67px → 92px / 21 = 5
     expect(countRenderedLines(md)).toBe(5)
   })
 })
@@ -1179,7 +1300,7 @@ describe('governOnePage', () => {
     })
 
     const result = governOnePage(content, defaultUserInfo, {
-      maxLines: 40, // Force small limit to trigger pruning
+      maxLines: 33, // Tight limit to trigger pruning with block-based estimator
       sectionOrder: ['education', 'skills', 'experience', 'projects'],
       semanticAnalysis: analysis,
     })
@@ -1369,14 +1490,14 @@ describe('governOnePage', () => {
     })
 
     const result = governOnePage(content, defaultUserInfo, {
-      maxLines: 35,
+      maxLines: 28, // Tight enough to trigger pruning + re-expansion with block-based estimator
       sectionOrder: ['education', 'skills', 'experience', 'projects'],
       semanticAnalysis: analysis,
     })
 
     // Governor must take actions to fit and the result should fit
     expect(result.actions.length).toBeGreaterThan(0)
-    expect(result.linesAfter).toBeLessThanOrEqual(35)
+    expect(result.linesAfter).toBeLessThanOrEqual(28)
   })
 
   it('produces CONDENSE actions with "to 2" before "to 1" entries', () => {
@@ -1479,6 +1600,31 @@ describe('governOnePage', () => {
     expect(skills.tools).toContain('Docker')
     expect(skills.tools).toContain('Kubernetes')
     expect(skills.tools).toContain('PostgreSQL')
+  })
+
+  it('with default maxLines (no override), produces content under PAGE_HEIGHT_PX - SAFETY_BUFFER_PX', () => {
+    const content = createOverflowContent()
+    const analysis = defaultAnalysis({
+      experience_scores: [
+        { index: 0, score: 90, reason: 'Excellent' },
+        { index: 1, score: 70, reason: 'Good' },
+        { index: 2, score: 40, reason: 'Low' },
+      ],
+      project_scores: [
+        { index: 0, score: 65, reason: 'OK' },
+        { index: 1, score: 50, reason: 'Fair' },
+        { index: 2, score: 35, reason: 'Low' },
+      ],
+    })
+
+    const result = governOnePage(content, defaultUserInfo, {
+      // No maxLines - uses real page height budget
+      sectionOrder: ['education', 'skills', 'experience', 'projects'],
+      semanticAnalysis: analysis,
+    })
+
+    const heightPx = estimateHeightPx(result.markdown)
+    expect(heightPx).toBeLessThanOrEqual(PAGE_HEIGHT_PX - SAFETY_BUFFER_PX)
   })
 })
 

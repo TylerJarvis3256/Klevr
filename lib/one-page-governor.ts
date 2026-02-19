@@ -42,22 +42,195 @@ export interface GovernorOptions {
   semanticAnalysis: SemanticJDAnalysis
 }
 
-// ─── Line Counter ────────────────────────────────────
+// ─── Height Estimator (pixel-based) ─────────────────
 
-const MAX_LINES = 64
-const CHARS_PER_LINE = 105
+// A4 page height at 96 dpi = 1123px, minus 80px top+bottom margins
+export const PAGE_HEIGHT_PX = 1043
+export const SAFETY_BUFFER_PX = 10
 
-export function countRenderedLines(markdown: string, charsPerLine = CHARS_PER_LINE): number {
-  const lines = markdown.split('\n')
-  let total = 0
-  for (const line of lines) {
-    if (line.length === 0) {
-      total += 1
-    } else {
-      total += Math.ceil(line.length / charsPerLine)
+// Line heights (px per visual text line, excluding margin)
+const LINE_HEIGHT = {
+  H1: 29, // 24px * ~1.2 default line-height
+  H2: 21, // 13pt * ~1.2 default line-height
+  BODY: 21, // 11pt * 1.4 line-height
+  EM: 19, // 10pt * 1.4 line-height
+  LI: 16, // 10pt * ~1.2 line-height
+} as const
+
+// Element margins/spacing (px, applied once per element)
+const MARGIN = {
+  H1_BOTTOM: 4,
+  H2_TOP_FIRST: 12, // CSS: h1 + p + h2
+  H2_TOP: 16,
+  H2_PAD_BOTTOM: 3,
+  H2_BORDER: 1,
+  H2_BOTTOM: 8,
+  P_BOTTOM: 4,
+  LI_TOP: 2,
+  UL_BOTTOM: 4,
+} as const
+
+// Chars per line for wrapping estimation
+const EL_CPL = {
+  H1: 50, // 24px bold
+  H2: 65, // 13pt uppercase bold
+  BODY: 100, // 11pt regular
+  EM: 115, // 10pt regular
+  LI: 110, // 10pt with 15px indent + bullet + gap
+} as const
+
+// Reference line height for line-equivalent conversion
+const REFERENCE_LINE_PX = 21
+
+// ─── Block-based Markdown Parser ─────────────────────
+
+type BlockType = 'h1' | 'h2' | 'bullet_group' | 'paragraph'
+
+interface MarkdownBlock {
+  type: BlockType
+  lines: string[]
+}
+
+function parseMarkdownBlocks(markdown: string): MarkdownBlock[] {
+  const sourceLines = markdown.split('\n')
+  const blocks: MarkdownBlock[] = []
+  let pendingParagraph: string[] = []
+  let pendingBullets: string[] = []
+
+  const flushParagraph = () => {
+    if (pendingParagraph.length > 0) {
+      blocks.push({ type: 'paragraph', lines: [...pendingParagraph] })
+      pendingParagraph = []
     }
   }
-  return total
+
+  const flushBullets = () => {
+    if (pendingBullets.length > 0) {
+      blocks.push({ type: 'bullet_group', lines: [...pendingBullets] })
+      pendingBullets = []
+    }
+  }
+
+  for (const line of sourceLines) {
+    const trimmed = line.trim()
+
+    if (trimmed.length === 0) {
+      flushParagraph()
+      flushBullets()
+      continue
+    }
+
+    // H1 heading (ATX heading - single line block)
+    if (trimmed.startsWith('# ') && !trimmed.startsWith('## ')) {
+      flushParagraph()
+      flushBullets()
+      blocks.push({ type: 'h1', lines: [trimmed] })
+      continue
+    }
+
+    // H2 heading
+    if (trimmed.startsWith('## ')) {
+      flushParagraph()
+      flushBullets()
+      blocks.push({ type: 'h2', lines: [trimmed] })
+      continue
+    }
+
+    // Bullet list item (interrupts paragraphs in CommonMark)
+    if (trimmed.startsWith('- ')) {
+      flushParagraph()
+      pendingBullets.push(trimmed)
+      continue
+    }
+
+    // Regular text - accumulate into paragraph block
+    flushBullets()
+    pendingParagraph.push(trimmed)
+  }
+
+  flushParagraph()
+  flushBullets()
+
+  return blocks
+}
+
+export function estimateHeightPx(markdown: string): number {
+  const blocks = parseMarkdownBlocks(markdown)
+  let totalPx = 0
+  let seenH2 = false
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i]
+
+    switch (block.type) {
+      case 'h1': {
+        const text = block.lines[0].slice(2)
+        const wrappedLines = Math.ceil(text.length / EL_CPL.H1)
+        totalPx += wrappedLines * LINE_HEIGHT.H1 + MARGIN.H1_BOTTOM
+        break
+      }
+
+      case 'h2': {
+        const text = block.lines[0].slice(3)
+        const wrappedLines = Math.ceil(text.length / EL_CPL.H2)
+
+        // CSS: h1 + p + h2 gets reduced top margin (first h2 only)
+        let useReducedMargin = false
+        if (!seenH2 && i >= 2) {
+          useReducedMargin = blocks[i - 1].type === 'paragraph' && blocks[i - 2].type === 'h1'
+        }
+        seenH2 = true
+
+        const topMargin = useReducedMargin ? MARGIN.H2_TOP_FIRST : MARGIN.H2_TOP
+        totalPx +=
+          topMargin +
+          wrappedLines * LINE_HEIGHT.H2 +
+          MARGIN.H2_PAD_BOTTOM +
+          MARGIN.H2_BORDER +
+          MARGIN.H2_BOTTOM
+        break
+      }
+
+      case 'bullet_group': {
+        for (let j = 0; j < block.lines.length; j++) {
+          const text = block.lines[j].slice(2)
+          const wrappedLines = Math.ceil(text.length / EL_CPL.LI)
+          if (j === 0) {
+            totalPx += wrappedLines * LINE_HEIGHT.LI
+          } else {
+            totalPx += MARGIN.LI_TOP + wrappedLines * LINE_HEIGHT.LI
+          }
+        }
+        totalPx += MARGIN.UL_BOTTOM
+        break
+      }
+
+      case 'paragraph': {
+        // Consecutive non-blank lines render as ONE <p> in HTML.
+        // Each source line contributes visual lines at the appropriate
+        // line height, but margin-bottom is applied only once.
+        for (const line of block.lines) {
+          const isItalic = line.startsWith('*') && line.endsWith('*') && !line.startsWith('**')
+          if (isItalic) {
+            const text = line.slice(1, -1)
+            const wrappedLines = Math.ceil(text.length / EL_CPL.EM)
+            totalPx += wrappedLines * LINE_HEIGHT.EM
+          } else {
+            const wrappedLines = Math.ceil(line.length / EL_CPL.BODY)
+            totalPx += wrappedLines * LINE_HEIGHT.BODY
+          }
+        }
+        totalPx += MARGIN.P_BOTTOM
+        break
+      }
+    }
+  }
+
+  return totalPx
+}
+
+export function countRenderedLines(markdown: string, _charsPerLine?: number): number {
+  return Math.ceil(estimateHeightPx(markdown) / REFERENCE_LINE_PX)
 }
 
 // ─── Step A: Semantic Redundancy Consolidation ───────
@@ -250,7 +423,7 @@ export function tightenAllBullets(content: GovernableContent): GovernorAction[] 
     {
       step: 'TIGHTEN',
       action: `Tightened bullet text, saved ${charsSaved} characters`,
-      linesSaved: Math.floor(charsSaved / CHARS_PER_LINE),
+      linesSaved: Math.floor(charsSaved / EL_CPL.LI),
     },
   ]
 }
@@ -708,9 +881,10 @@ function buildResult(
   markdown: string,
   actions: GovernorAction[],
   linesBefore: number,
-  maxLines: number
+  heightBudgetPx: number
 ): GovernorResult {
   const linesAfter = countRenderedLines(markdown)
+  const heightPx = estimateHeightPx(markdown)
 
   // Count metric bullets in final content
   let metricsInFinalContent = 0
@@ -739,7 +913,7 @@ function buildResult(
     linesBefore,
     linesAfter,
     metricsInFinalContent,
-    densityRatio: maxLines > 0 ? linesAfter / maxLines : 0,
+    densityRatio: heightBudgetPx > 0 ? heightPx / heightBudgetPx : 0,
   }
 }
 
@@ -750,7 +924,10 @@ export function governOnePage(
   userInfo: MarkdownUserInfo,
   options: GovernorOptions
 ): GovernorResult {
-  const maxLines = options.maxLines ?? MAX_LINES
+  // Convert maxLines to pixel budget when provided (tests), otherwise use page height
+  const heightBudgetPx = options.maxLines
+    ? options.maxLines * REFERENCE_LINE_PX
+    : PAGE_HEIGHT_PX - SAFETY_BUFFER_PX
   const allActions: GovernorAction[] = []
 
   // Deep-clone content to avoid mutating the original
@@ -764,14 +941,14 @@ export function governOnePage(
 
   // Helper: regenerate markdown and check fit
   const regenerate = () => generateResumeMarkdown(governed, userInfo, mkOpts)
-  const fits = (md: string) => countRenderedLines(md) <= maxLines
+  const fits = (md: string) => estimateHeightPx(md) <= heightBudgetPx
 
   // Initial markdown generation + line count
   let markdown = regenerate()
   const linesBefore = countRenderedLines(markdown)
 
-  if (linesBefore <= maxLines) {
-    return buildResult(governed, markdown, [], linesBefore, maxLines)
+  if (fits(markdown)) {
+    return buildResult(governed, markdown, [], linesBefore, heightBudgetPx)
   }
 
   // Step A: Consolidate redundant projects
@@ -786,7 +963,7 @@ export function governOnePage(
         markdown,
         allActions,
         linesBefore,
-        maxLines,
+        heightBudgetPx,
         userInfo,
         mkOpts,
         options.semanticAnalysis
@@ -806,7 +983,7 @@ export function governOnePage(
         markdown,
         allActions,
         linesBefore,
-        maxLines,
+        heightBudgetPx,
         userInfo,
         mkOpts,
         options.semanticAnalysis
@@ -826,7 +1003,7 @@ export function governOnePage(
         markdown,
         allActions,
         linesBefore,
-        maxLines,
+        heightBudgetPx,
         userInfo,
         mkOpts,
         options.semanticAnalysis
@@ -846,7 +1023,7 @@ export function governOnePage(
         markdown,
         allActions,
         linesBefore,
-        maxLines,
+        heightBudgetPx,
         userInfo,
         mkOpts,
         options.semanticAnalysis
@@ -869,7 +1046,7 @@ export function governOnePage(
       markdown,
       allActions,
       linesBefore,
-      maxLines,
+      heightBudgetPx,
       userInfo,
       mkOpts,
       options.semanticAnalysis
@@ -891,7 +1068,7 @@ export function governOnePage(
       markdown,
       allActions,
       linesBefore,
-      maxLines,
+      heightBudgetPx,
       userInfo,
       mkOpts,
       options.semanticAnalysis
@@ -911,7 +1088,7 @@ export function governOnePage(
         markdown,
         allActions,
         linesBefore,
-        maxLines,
+        heightBudgetPx,
         userInfo,
         mkOpts,
         options.semanticAnalysis
@@ -921,20 +1098,20 @@ export function governOnePage(
 
   // Compact mode
   markdown = compactifyMarkdown(markdown)
-  const compactLines = countRenderedLines(markdown)
+  const compactHeightPx = estimateHeightPx(markdown)
   allActions.push({
     step: 'COMPACT',
     action: 'Applied compact mode to markdown',
-    linesSaved: countRenderedLines(regenerate()) - compactLines,
+    linesSaved: countRenderedLines(regenerate()) - countRenderedLines(markdown),
   })
-  if (compactLines <= maxLines) {
+  if (compactHeightPx <= heightBudgetPx) {
     return attemptReExpansion(
       governed,
       original,
       markdown,
       allActions,
       linesBefore,
-      maxLines,
+      heightBudgetPx,
       userInfo,
       mkOpts,
       options.semanticAnalysis
@@ -947,7 +1124,7 @@ export function governOnePage(
   markdown = regenerate()
   markdown = compactifyMarkdown(markdown)
 
-  return buildResult(governed, markdown, allActions, linesBefore, maxLines)
+  return buildResult(governed, markdown, allActions, linesBefore, heightBudgetPx)
 }
 
 // ─── Re-Expansion ───────────────────────────────────
@@ -958,17 +1135,17 @@ function attemptReExpansion(
   markdown: string,
   allActions: GovernorAction[],
   linesBefore: number,
-  maxLines: number,
+  heightBudgetPx: number,
   userInfo: MarkdownUserInfo,
   mkOpts: { sectionOrder: string[]; professionalTitle?: string },
   analysis: SemanticJDAnalysis
 ): GovernorResult {
-  const targetLines = Math.floor(maxLines * 0.95)
-  let currentLines = countRenderedLines(markdown)
+  const targetPx = Math.floor(heightBudgetPx * 0.98)
+  let currentHeightPx = estimateHeightPx(markdown)
   let currentMarkdown = markdown
 
-  if (currentLines >= targetLines) {
-    return buildResult(governed, currentMarkdown, allActions, linesBefore, maxLines)
+  if (currentHeightPx >= targetPx) {
+    return buildResult(governed, currentMarkdown, allActions, linesBefore, heightBudgetPx)
   }
 
   // Build candidate list from both experience and project sections
@@ -1043,7 +1220,7 @@ function attemptReExpansion(
   }
 
   // Loop: add bullets until target density or overflow
-  while (currentLines < targetLines) {
+  while (currentHeightPx < targetPx) {
     const candidates = buildCandidates()
     if (candidates.length === 0) break
 
@@ -1066,10 +1243,10 @@ function attemptReExpansion(
     }
 
     const expandedMarkdown = generateResumeMarkdown(governed, userInfo, mkOpts)
-    const expandedLines = countRenderedLines(expandedMarkdown)
+    const expandedHeightPx = estimateHeightPx(expandedMarkdown)
 
-    if (expandedLines > maxLines) {
-      // Roll back — overflows
+    if (expandedHeightPx > heightBudgetPx) {
+      // Roll back - overflows
       if (best.sectionType === 'experience' && governed.experience) {
         const exp = governed.experience.find(e => `${e.title} at ${e.company}` === best.entryLabel)
         if (exp) exp.bullets.pop()
@@ -1083,14 +1260,16 @@ function attemptReExpansion(
       break
     }
 
+    const prevLines = countRenderedLines(currentMarkdown)
+    const expandedLines = countRenderedLines(expandedMarkdown)
     allActions.push({
       step: 'REEXPAND',
       action: `Restored bullet to "${best.entryLabel}": "${best.bullet.slice(0, 60)}..."`,
-      linesSaved: -(expandedLines - currentLines),
+      linesSaved: -(expandedLines - prevLines),
     })
-    currentLines = expandedLines
+    currentHeightPx = expandedHeightPx
     currentMarkdown = expandedMarkdown
   }
 
-  return buildResult(governed, currentMarkdown, allActions, linesBefore, maxLines)
+  return buildResult(governed, currentMarkdown, allActions, linesBefore, heightBudgetPx)
 }
