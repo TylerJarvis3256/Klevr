@@ -237,6 +237,7 @@ export function generateCoverLetterMarkdown(
   lines.push(jobInfo.company)
   lines.push(`Re: ${jobInfo.title}`)
   lines.push('')
+  lines.push('')
 
   if (typeof content === 'string') {
     // V1: plain text body
@@ -255,8 +256,7 @@ export function generateCoverLetterMarkdown(
       lines.push('')
     }
 
-    lines.push(content.closing)
-    lines.push('')
+    lines.push('Sincerely,')
     lines.push(userInfo.name)
   }
 

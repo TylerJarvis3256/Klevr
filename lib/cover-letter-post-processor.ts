@@ -318,6 +318,40 @@ function fixVagueMetrics(text: string, metricsToFeature: string[], fixes: string
   return result
 }
 
+// ---- Dropped Metric Injection ----
+
+function fixDroppedMetrics(text: string, metricsToFeature: string[], fixes: string[]): string {
+  if (metricsToFeature.length === 0) return text
+
+  // Find metrics not already present in the text
+  const missingMetrics = metricsToFeature.filter(m => !text.includes(m))
+  if (missingMetrics.length === 0) return text
+
+  const sentences = splitSentences(text)
+  let injected = false
+
+  for (const metric of missingMetrics) {
+    // Find a sentence with a vague qualifier where we can inject the metric
+    for (let i = 0; i < sentences.length; i++) {
+      const sentLower = sentences[i].toLowerCase()
+      const hasVague = VAGUE_QUALIFIERS.some(vq => sentLower.includes(vq))
+      if (hasVague) {
+        // Inject metric after the vague qualifier by appending it
+        // e.g. "...achieved a significant impact" -> "...achieved a significant impact (~15 minutes)"
+        sentences[i] = sentences[i].replace(/([.!?])$/, ` (${metric})$1`)
+        injected = true
+        break // One metric per pass
+      }
+    }
+  }
+
+  if (injected) {
+    fixes.push('Injected missing metric next to vague qualifier')
+  }
+
+  return joinSentences(sentences)
+}
+
 // ---- Hyphen Sentence Break Detection ----
 
 // Words that commonly start independent clauses
@@ -348,6 +382,29 @@ const CLAUSE_STARTERS = new Set([
   'since',
   'after',
   'before',
+  // Pronouns / determiners
+  'each',
+  'every',
+  'both',
+  'all',
+  'any',
+  'most',
+  'some',
+  'what',
+  'how',
+  // Prepositions / transitions
+  'by',
+  'for',
+  'with',
+  'from',
+  'over',
+  'once',
+  'if',
+  'as',
+  'yet',
+  'now',
+  'then',
+  'here',
 ])
 
 function fixHyphenSentenceBreaks(text: string, fixes: string[]): string {
@@ -367,21 +424,26 @@ function fixHyphenSentenceBreaks(text: string, fixes: string[]): string {
     const rightWords = right.trim().split(/\s+/)
 
     // Check if both sides look like independent clauses:
-    // a) Both have 4+ words
+    // a) Left has 4+ words, right has 3+ words
     // b) Left side ends with a word (not just a number)
-    // c) Right side starts with a clause-starter word
+    // c) Right side starts with a clause-starter word OR a capitalized word (not an acronym)
     const leftHasEnoughWords = leftWords.length >= 4
-    const rightHasEnoughWords = rightWords.length >= 4
+    const rightHasEnoughWords = rightWords.length >= 3
     const leftEndsWithWord =
       leftWords.length > 0 && /^[a-zA-Z]/.test(leftWords[leftWords.length - 1])
     const rightStartWord = rightWords.length > 0 ? rightWords[0].toLowerCase() : ''
     const rightStartsWithClauseStarter = CLAUSE_STARTERS.has(rightStartWord)
+    // Capitalized word heuristic: word starts uppercase, has 3+ lowercase chars (not an acronym like "API")
+    // Exclude list items: if the first word ends with a comma, it's likely a list, not a clause
+    const rightFirstWord = rightWords.length > 0 ? rightWords[0] : ''
+    const rightStartsCapitalized =
+      /^[A-Z][a-z]{2,}/.test(rightFirstWord) && !rightFirstWord.endsWith(',')
 
     if (
       leftHasEnoughWords &&
       rightHasEnoughWords &&
       leftEndsWithWord &&
-      rightStartsWithClauseStarter
+      (rightStartsWithClauseStarter || rightStartsCapitalized)
     ) {
       // Replace with period and capitalize
       const capitalized = right.charAt(0).toUpperCase() + right.slice(1)
@@ -591,6 +653,7 @@ export function postProcessCoverLetter(
     text = fixMantraSlogans(text, fixes)
     text = fixFloweryAdjectives(text, fixes)
     text = fixVagueMetrics(text, [...metricsToFeature], fixes)
+    text = fixDroppedMetrics(text, metricsToFeature, fixes)
     text = fixConsecutiveIStarts(text, fixes)
     text = fixPassiveClosings(text, fixes)
 

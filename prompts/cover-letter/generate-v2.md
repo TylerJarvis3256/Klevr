@@ -89,7 +89,7 @@ Good openings:
 
 Describe a specific Significant Achievement or Problem-Solving Moment from the user's top experience. Structure it as an Action-to-Value Bridge:
 
-1. Identify the need or problem (e.g., "I noticed a bottleneck in our scheduling process")
+1. **System Friction** - Before describing the action, describe the specific manual pain point or inefficiency you observed (e.g., "watching management reconcile paper sheets every Friday", "manually deploying via FTP every release", "seeing teammates re-enter the same data across three spreadsheets"). This grounds the narrative in a real problem only you could have witnessed.
 2. Describe the action taken (what you built, organized, or changed)
 3. Anchor the result with a specific metric from metrics_to_feature, or if no metric exists, use concrete nouns describing the outcome
 
@@ -114,6 +114,23 @@ Bad closings (NEVER use):
 - "I look forward to hearing from you."
 - "Please don't hesitate to contact me."
 
+## Immutable Metrics
+
+Every metric string in `metrics_to_feature` is an **immutable anchor**. You are forbidden from paraphrasing, rounding, or replacing any metric with a qualitative adjective or adverb.
+
+Rules:
+
+- Copy each metric from `metrics_to_feature` verbatim into the output
+- Do NOT replace a number with a vague word (e.g., "hours every week" instead of "~15 minutes", "a large team" instead of "15+ staff")
+- Do NOT round or approximate (e.g., "nearly half" instead of "40%")
+- This rule applies to ALL voices with NO exceptions
+
+Bad examples (violations):
+
+- `metrics_to_feature: ["~15 minutes"]` -> "saving hours every week" (WRONG - use "~15 minutes")
+- `metrics_to_feature: ["15+ staff"]` -> "a large team" (WRONG - use "15+ staff")
+- `metrics_to_feature: ["40%"]` -> "nearly half" (WRONG - use "40%")
+
 ## Voice Instructions
 
 ### Professional (default)
@@ -121,7 +138,9 @@ Bad closings (NEVER use):
 - Formal, measured tone
 - No contractions
 - Focus on ROI, strategy, impact
+- **System Friction**: Describe the organizational friction or inefficiency you identified, then the strategic solution
 - Describe a moment of successful stakeholder collaboration - aligning cross-functional teams, navigating competing priorities, or translating technical work into business value.
+- Preserve all numerical metrics from metrics_to_feature exactly as provided.
 - Example: "I delivered a 40% reduction in processing time by redesigning the query architecture."
 
 ### Casual
@@ -130,9 +149,11 @@ Bad closings (NEVER use):
 - Contractions are encouraged
 - Use Builder's Vocabulary: shipping, prototyping, mapping, deploying, wiring up, spinning up, hacking on, experimenting with
 - Focus on building, shipping, and speed
+- **System Friction**: Describe the specific manual pain you witnessed before your "Aha!" moment
 - Reference a specific "Aha!" moment from the user's experimentation (e.g., "When I first wired up Supabase to handle real-time tip tracking, I knew this was the kind of systems work I wanted to do full-time.")
 - Describe a specific challenge - a problem that took real effort to solve, a constraint that forced creative thinking, or a process you improved through persistence. This should feel like a real story only you could tell.
 - Match the energy of the JD - if they say "obsessed with tools," you should sound like someone who IS obsessed with tools
+- Preserve all numerical metrics from metrics_to_feature exactly as provided.
 - Example: "I've shipped features that cut processing time by 40%. I'm looking to bring that same energy to your team."
 
 ### Friendly
@@ -140,7 +161,9 @@ Bad closings (NEVER use):
 - Warm, collaborative tone
 - Contractions are fine
 - Focus on culture fit, teamwork
+- **System Friction**: Describe the team pain point you noticed and how your solution made colleagues' work easier
 - Describe how your work improved the daily experience of teammates or users - a process you simplified, a tool you built that someone thanked you for, or a collaboration that made everyone's job easier.
+- Preserve all numerical metrics from metrics_to_feature exactly as provided.
 - Example: "Working closely with my team, we reduced processing time by 40% through a collaborative redesign effort."
 
 ### Research
@@ -148,7 +171,9 @@ Bad closings (NEVER use):
 - Academic, precise tone
 - No contractions
 - Focus on methodology, rigor
+- **System Friction**: Describe the methodological gap or manual bottleneck, then the systematic approach to resolve it
 - Describe the "Why" behind a technical choice - explain the reasoning process that led to one approach over alternatives, referencing data, constraints, or prior work.
+- Preserve all numerical metrics from metrics_to_feature exactly as provided.
 - Example: "Through systematic optimization of the query pipeline, I achieved a 40% reduction in processing time, validated through A/B testing across 10K requests."
 
 ## Sentence Structure Variance
@@ -191,7 +216,7 @@ These are absolute constraints. The post-processor will catch violations, but pr
 7. **NEVER include brackets** - no `[Your Name]` or `[Company]` placeholders
 8. **NEVER use generic filler** - every sentence must contain specific, concrete information
 9. **NEVER use vague qualifiers** when a metric exists in metrics_to_feature. Banned phrases: "significant", "significantly", "substantial", "substantially", "considerable", "considerably", "improved", "enhanced", "major", "notable", "marked", "dramatic", "dramatically". If a numerical metric is available (e.g., "~15 minutes", "15+ staff", "40%"), you MUST use the exact figure. Replace "resulted in significant improvement" with the actual number from metrics_to_feature.
-10. **NEVER use a hyphen or dash as a sentence break.** Do not write "clause - clause" patterns where both sides are independent clauses. If you need a break between two independent clauses, use a period to create two sentences, or use a semicolon.
+10. **NEVER use a hyphen or dash as a sentence break.** Do not write "clause - clause" patterns where both sides are independent clauses. EVERY `-` between independent clauses must become a period. If you need a break between two independent clauses, use a period to create two sentences, or use a semicolon. Bad examples: "I built the system - it scaled to 10K users" (WRONG), "The project succeeded - each team member contributed" (WRONG), "I solved the problem - Running the new pipeline confirmed the fix" (WRONG). Correct: "I built the system. It scaled to 10K users."
 11. **NEVER list skills in isolation.** Do not write "I am proficient in Python, React, and PostgreSQL." Every skill mention must be tied to the specific project or experience where it was used.
 12. **NEVER use mantra-style three-part slogans.** Do not write "Analyze, Automate, Accelerate" or "I build, I ship, I lead" or any triadic rhetorical structure.
 13. **NEVER open with a cliche setup** like "In today's fast-paced world" or "In today's competitive market." Start with a concrete value statement tied to the company's specific need.

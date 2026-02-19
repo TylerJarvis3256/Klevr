@@ -233,6 +233,59 @@ describe('postProcessCoverLetter', () => {
       // Left side has fewer than 4 words
       expect(result.paragraphs[0]).toContain(' - ')
     })
+
+    it('splits when right side starts with an expanded clause starter like "each"', () => {
+      const result = postProcessCoverLetter([
+        'I built a notification system for the team - each member received real-time alerts.',
+      ])
+      expect(result.paragraphs[0]).toContain('. Each')
+      expect(result.paragraphs[0]).not.toContain(' - each')
+    })
+
+    it('splits when right side starts with a capitalized non-acronym word', () => {
+      const result = postProcessCoverLetter([
+        'I refactored the deployment pipeline completely - Running the new pipeline confirmed the fix was stable.',
+      ])
+      expect(result.paragraphs[0]).toContain('. Running')
+      expect(result.paragraphs[0]).not.toContain(' - Running')
+    })
+
+    it('preserves hyphens when right side starts with an acronym like API', () => {
+      const text =
+        'I built the authentication layer - API keys were rotated and the system was tested.'
+      const result = postProcessCoverLetter([text])
+      // "API" is all-caps (acronym), should NOT trigger capitalized heuristic
+      // but it's not in CLAUSE_STARTERS either, so it should be preserved
+      expect(result.paragraphs[0]).toContain(' - API')
+    })
+
+    it('splits with a 3-word right side clause', () => {
+      const result = postProcessCoverLetter([
+        'I redesigned the entire scheduling workflow - it worked well.',
+      ])
+      expect(result.paragraphs[0]).toContain('. It')
+      expect(result.paragraphs[0]).not.toContain(' - it')
+    })
+  })
+
+  describe('dropped metric injection', () => {
+    it('injects a missing metric next to a vague qualifier', () => {
+      const result = postProcessCoverLetter(
+        ['The project delivered a notable impact on team productivity.'],
+        { metricsToFeature: ['~15 minutes'] }
+      )
+      // fixVagueMetrics should replace "notable impact" with "~15 minutes impact"
+      // but if the qualifier doesn't match the exact pattern, fixDroppedMetrics catches it
+      expect(result.paragraphs[0]).toContain('~15 minutes')
+    })
+
+    it('does not inject when all metrics are already present', () => {
+      const text = 'The project saved ~15 minutes per task and cut costs by 40%.'
+      const result = postProcessCoverLetter([text], {
+        metricsToFeature: ['~15 minutes', '40%'],
+      })
+      expect(result.paragraphs[0]).toBe(text)
+    })
   })
 
   describe('rhythm cap (30% I/My ceiling)', () => {
