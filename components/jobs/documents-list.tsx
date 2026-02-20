@@ -212,14 +212,15 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
 
   return (
     <div className="bg-white rounded-2xl border border-secondary/10 shadow-card p-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <h2 className="font-lora text-2xl font-semibold text-secondary">Documents</h2>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Button
             onClick={handleGenerateResume}
             disabled={isGeneratingResume}
             variant="default"
             size="sm"
+            className="w-full sm:w-auto"
           >
             {isGeneratingResume ? (
               <>
@@ -238,6 +239,7 @@ export function DocumentsList({ documents, applicationId, documentTasks }: Docum
             disabled={isGeneratingCoverLetter}
             variant="default"
             size="sm"
+            className="w-full sm:w-auto"
           >
             {isGeneratingCoverLetter ? (
               <>

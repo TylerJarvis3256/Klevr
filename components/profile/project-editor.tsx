@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, Trash2, ExternalLink, Github } from 'lucide-react'
+import { Plus, Trash2, ExternalLink, Github, Pencil, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BulletEditor } from './bullet-editor'
 import type { Project } from '@prisma/client'
@@ -308,7 +308,7 @@ export function ProjectEditor({
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1 sm:gap-2">
                   {editingId !== proj.id && (
                     <>
                       <Button
@@ -317,14 +317,25 @@ export function ProjectEditor({
                         onClick={() => startEditing(proj)}
                         className="text-accent-teal"
                       >
-                        Edit
+                        <Pencil className="h-4 w-4 sm:hidden" />
+                        <span className="hidden sm:inline">Edit</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setExpandedId(expandedId === proj.id ? null : proj.id)}
                       >
-                        {expandedId === proj.id ? 'Collapse' : 'Expand'}
+                        {expandedId === proj.id ? (
+                          <>
+                            <ChevronUp className="h-4 w-4 sm:hidden" />
+                            <span className="hidden sm:inline">Collapse</span>
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 sm:hidden" />
+                            <span className="hidden sm:inline">Expand</span>
+                          </>
+                        )}
                       </Button>
                       <Button
                         variant="ghost"

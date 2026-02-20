@@ -12,7 +12,8 @@ import {
   useDroppable,
 } from '@dnd-kit/core'
 import { ApplicationCard } from './application-card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -218,36 +219,38 @@ export function Pipeline({ applications, searchQuery, fitFilter, statusFilter }:
         </DndContext>
       </div>
 
-      {/* Mobile View - Tabs */}
-      <div className="lg:hidden">
-        <Tabs defaultValue={ApplicationStatus.PLANNED} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-6">
-            {STATUS_COLUMNS.map(({ status, label }) => (
-              <TabsTrigger key={status} value={status} className="text-xs">
-                {label}
-                <span className="ml-1 text-secondary/50">
-                  ({applicationsByStatus[status].length})
-                </span>
-              </TabsTrigger>
-            ))}
-          </TabsList>
+      {/* Mobile View - Accordion Sections */}
+      <div className="lg:hidden space-y-2">
+        {STATUS_COLUMNS.map(({ status, label, color }) => {
+          const columnApps = applicationsByStatus[status]
+          const hasItems = columnApps.length > 0
+          const isFirstWithItems =
+            hasItems &&
+            STATUS_COLUMNS.findIndex(col => applicationsByStatus[col.status].length > 0) ===
+              STATUS_COLUMNS.findIndex(col => col.status === status)
 
-          {STATUS_COLUMNS.map(({ status }) => {
-            const columnApps = applicationsByStatus[status]
-
-            return (
-              <TabsContent key={status} value={status} className="space-y-3">
-                {columnApps.length === 0 ? (
-                  <div className="text-center py-12 text-sm text-secondary/50">
-                    No applications in {status.toLowerCase()}
-                  </div>
-                ) : (
-                  columnApps.map(app => <ApplicationCard key={app.id} application={app} />)
-                )}
-              </TabsContent>
-            )
-          })}
-        </Tabs>
+          return (
+            <Collapsible key={status} defaultOpen={isFirstWithItems}>
+              <CollapsibleTrigger className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-primary/30 transition-colors group">
+                <ChevronRight className="h-4 w-4 text-secondary/60 transition-transform group-data-[state=open]:rotate-90" />
+                <div className={`h-5 w-1 rounded-full bg-${color}`} />
+                <span className="font-semibold text-secondary">{label}</span>
+                <span className="text-sm text-secondary/50 ml-auto">{columnApps.length}</span>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="space-y-3 pt-2 pb-1">
+                  {columnApps.length === 0 ? (
+                    <div className="text-center py-6 text-sm text-secondary/50">
+                      No applications
+                    </div>
+                  ) : (
+                    columnApps.map(app => <ApplicationCard key={app.id} application={app} />)
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          )
+        })}
       </div>
     </>
   )
