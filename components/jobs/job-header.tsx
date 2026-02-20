@@ -131,12 +131,21 @@ export function JobHeader({ job, application }: JobHeaderProps) {
           <EditJobDialog
             job={job}
             trigger={
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full text-secondary/70 hover:text-accent-teal hover:bg-accent-teal/10 transition-colors"
+              >
                 <Pencil className="w-4 h-4" />
               </Button>
             }
           />
-          <Button variant="ghost" size="icon" onClick={handleDelete} className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            className="rounded-full text-error/70 hover:text-error hover:bg-error/10 transition-colors"
+          >
             <Trash2 className="w-4 h-4" />
           </Button>
         </div>
