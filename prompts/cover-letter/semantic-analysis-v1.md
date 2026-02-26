@@ -37,6 +37,14 @@ Analyze the job description to identify the company's **primary pain point** and
       }
     ],
     "skills": ["string"],
+    "skill_boundaries": {
+      "verified_skills": [
+        { "skill": "React", "evidence": ["Built real-time dashboard using React..."] }
+      ],
+      "missing_required": ["FastAPI", "React Native"],
+      "missing_preferred": ["GraphQL"],
+      "all_user_skills": ["React", "TypeScript", "Node.js", "Python", "Flask"]
+    },
     "education": [
       {
         "school": "string",
@@ -85,6 +93,13 @@ Return ONLY valid JSON matching this structure:
     "Exact metric strings from user's bullets to weave into narrative, e.g. '40% latency reduction'"
   ],
   "skills_to_weave": ["Skills from the user's profile that map to JD requirements"],
+  "adjacency_map": [
+    {
+      "missing_skill": "FastAPI",
+      "adjacent_user_skill": "Flask",
+      "reframe_angle": "Python API development with Flask"
+    }
+  ],
   "recommended_voice": "casual",
   "education_to_feature": {
     "credential": "B.S. in Computer Science, University of X",
@@ -166,6 +181,16 @@ If no education data exists in the profile, always omit this field entirely.
 
 If the conditions for inclusion are not met, omit the `education_to_feature` field from the output.
 
+### 9. Skill Boundary Enforcement
+
+When `skill_boundaries` is present in the input:
+
+- `skills_to_weave` MUST only contain skills from `verified_skills` or `all_user_skills` - never include a skill from `missing_required` or `missing_preferred`
+- Bridge angles MUST NOT claim the user has experience with any skill in `missing_required` or `missing_preferred`
+- For each skill in `missing_required`, identify the user's closest related skill from `all_user_skills` and output it in `adjacency_map`
+- If no adjacent skill exists for a missing skill, omit it from the `adjacency_map`
+- Only include `adjacency_map` when `skill_boundaries` is present and there are missing skills with plausible adjacent user skills
+
 ## Critical Rules
 
 1. **No hallucination** - only reference experiences, projects, and skills from the input
@@ -173,5 +198,6 @@ If the conditions for inclusion are not met, omit the `education_to_feature` fie
 3. **Max 2 experiences + 1 project** - cover letters are focused, not exhaustive
 4. **Metrics must be exact** - copy metric strings verbatim from bullets
 5. **Skills must exist in profile** - never suggest skills the user doesn't have
-6. **JSON only** - return ONLY valid JSON, no markdown or explanations
-7. **No em dashes** - never use em dashes or en dashes in any text field. Use a regular hyphen ( - ) instead
+6. **Skills must respect boundaries** - when `skill_boundaries` is present, `skills_to_weave` can ONLY include skills from `skill_boundaries.verified_skills` or `skill_boundaries.all_user_skills`. NEVER suggest or weave a skill from `missing_required` or `missing_preferred`
+7. **JSON only** - return ONLY valid JSON, no markdown or explanations
+8. **No em dashes** - never use em dashes or en dashes in any text field. Use a regular hyphen ( - ) instead

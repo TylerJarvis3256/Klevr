@@ -78,6 +78,10 @@ export const coverLetterGenerationFunction = inngest.createFunction(
         throw new Error('User has not confirmed resume')
       }
 
+      if (application.fit_score === null) {
+        throw new Error('Job fit assessment must be completed before generating a cover letter')
+      }
+
       // Step 4: Build structured profile
       const profileData = await step.run('build-profile', async () => {
         return buildStructuredProfile(
@@ -93,7 +97,11 @@ export const coverLetterGenerationFunction = inngest.createFunction(
 
       // Step 5 + 6: Run semantic analysis + generate content via V2 engine
       const engineOutput = await step.run('generate-cover-letter-v2', async () => {
-        return generateCoverLetterV2(userId, profileData, application.Job as any, voice)
+        return generateCoverLetterV2(userId, profileData, application.Job as any, voice, {
+          matching_skills: application.matching_skills,
+          missing_required_skills: application.missing_required_skills,
+          missing_preferred_skills: application.missing_preferred_skills,
+        })
       })
 
       // Step 7: Render PDF via Markdown -> HTML -> Puppeteer

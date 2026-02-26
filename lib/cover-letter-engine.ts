@@ -5,7 +5,66 @@ import { generateCoverLetterMarkdown } from './markdown/resume-to-markdown'
 import { deepSanitizeEmDashes } from './utils'
 import type { StructuredProfileData } from './resume-types'
 import type { Job } from '@prisma/client'
-import type { CoverLetterVoice, CLSemanticAnalysis, CLEngineOutput } from './cover-letter-types'
+import type {
+  CoverLetterVoice,
+  CoverLetterSkillData,
+  CLSemanticAnalysis,
+  CLEngineOutput,
+  SkillGroundTruth,
+  SkillEvidence,
+} from './cover-letter-types'
+
+// ---- Skill Ground Truth Builder ----
+
+/**
+ * Build a deterministic skill ground truth from profile data and job scoring results.
+ * For each matching skill, finds evidence in experiences and projects.
+ */
+export function buildSkillGroundTruth(
+  profileData: StructuredProfileData,
+  matchingSkills: string[],
+  missingRequired: string[],
+  missingPreferred: string[]
+): SkillGroundTruth {
+  const verifiedSkills: SkillEvidence[] = matchingSkills.map(skill => {
+    const found_in: SkillEvidence['found_in'] = []
+    const skillLower = skill.toLowerCase()
+
+    // Search project technologies and bullets
+    for (const proj of profileData.projects) {
+      const inTech = proj.technologies.some(t => t.toLowerCase() === skillLower)
+      const matchingBullets = proj.bullets.filter(b => b.toLowerCase().includes(skillLower))
+
+      if (inTech || matchingBullets.length > 0) {
+        const context = inTech
+          ? `Technologies: ${proj.technologies.join(', ')}`
+          : matchingBullets[0]
+        found_in.push({ type: 'project', name: proj.name, context })
+      }
+    }
+
+    // Search experience bullets
+    for (const exp of profileData.experiences) {
+      const matchingBullets = exp.bullets.filter(b => b.toLowerCase().includes(skillLower))
+      if (matchingBullets.length > 0) {
+        found_in.push({
+          type: 'experience',
+          name: `${exp.title} at ${exp.company}`,
+          context: matchingBullets[0],
+        })
+      }
+    }
+
+    return { skill, found_in }
+  })
+
+  return {
+    verified_skills: verifiedSkills,
+    missing_required: missingRequired,
+    missing_preferred: missingPreferred,
+    all_user_skills: profileData.skills,
+  }
+}
 
 // ---- Semantic Analysis ----
 
@@ -16,11 +75,12 @@ import type { CoverLetterVoice, CLSemanticAnalysis, CLEngineOutput } from './cov
 async function runCLSemanticAnalysis(
   userId: string,
   profileData: StructuredProfileData,
-  job: Job
+  job: Job,
+  groundTruth?: SkillGroundTruth
 ): Promise<CLSemanticAnalysis> {
   const { content: prompt, metadata } = await loadPrompt('cover-letter', 'semantic-analysis-v1')
 
-  const input = {
+  const input: Record<string, unknown> = {
     job: {
       title: job.title,
       company: job.company,
@@ -48,6 +108,18 @@ async function runCLSemanticAnalysis(
         gpa: edu.gpa,
       })),
     },
+  }
+
+  if (groundTruth) {
+    input.skill_boundaries = {
+      verified_skills: groundTruth.verified_skills.map(vs => ({
+        skill: vs.skill,
+        evidence: vs.found_in.map(f => f.context).slice(0, 3),
+      })),
+      missing_required: groundTruth.missing_required,
+      missing_preferred: groundTruth.missing_preferred,
+      all_user_skills: groundTruth.all_user_skills,
+    }
   }
 
   const message = await callAnthropic(
@@ -86,7 +158,8 @@ async function generateCLContent(
   profileData: StructuredProfileData,
   job: Job,
   analysis: CLSemanticAnalysis,
-  voice: CoverLetterVoice
+  voice: CoverLetterVoice,
+  forbiddenSkills?: string[]
 ): Promise<CLGeneratedContent> {
   const { content: prompt, metadata } = await loadPrompt('cover-letter', 'generate-v2')
 
@@ -117,7 +190,7 @@ async function generateCLContent(
     })
     .filter(Boolean)
 
-  const input = {
+  const input: Record<string, unknown> = {
     user_name: profileData.personal.name,
     job: {
       title: job.title,
@@ -135,6 +208,13 @@ async function generateCLContent(
       skills_to_weave: analysis.skills_to_weave,
     },
     education_context: analysis.education_to_feature ?? null,
+  }
+
+  if (forbiddenSkills && forbiddenSkills.length > 0) {
+    input.skill_boundaries = {
+      forbidden_skills: forbiddenSkills,
+      adjacency_map: analysis.adjacency_map ?? [],
+    }
   }
 
   const message = await callAnthropic(
@@ -173,21 +253,44 @@ export async function generateCoverLetterV2(
   userId: string,
   profileData: StructuredProfileData,
   job: Job,
-  voice?: CoverLetterVoice
+  voice?: CoverLetterVoice,
+  skillData?: CoverLetterSkillData
 ): Promise<CLEngineOutput> {
+  // Step 0: Build skill ground truth if scoring data is available
+  const groundTruth = skillData
+    ? buildSkillGroundTruth(
+        profileData,
+        skillData.matching_skills,
+        skillData.missing_required_skills,
+        skillData.missing_preferred_skills
+      )
+    : undefined
+
+  const forbiddenSkills = groundTruth
+    ? [...groundTruth.missing_required, ...groundTruth.missing_preferred]
+    : undefined
+
   // Step 1: Semantic analysis
-  const analysis = await runCLSemanticAnalysis(userId, profileData, job)
+  const analysis = await runCLSemanticAnalysis(userId, profileData, job, groundTruth)
 
   // Use recommended voice from analysis if no explicit override provided
   const recommendedVoice = analysis.recommended_voice || 'professional'
   const effectiveVoice = voice ?? recommendedVoice
 
   // Step 2: Generate content
-  const rawContent = await generateCLContent(userId, profileData, job, analysis, effectiveVoice)
+  const rawContent = await generateCLContent(
+    userId,
+    profileData,
+    job,
+    analysis,
+    effectiveVoice,
+    forbiddenSkills
+  )
 
-  // Step 3: Post-process (with metric context for vague qualifier detection)
+  // Step 3: Post-process (with metric context and forbidden skills detection)
   const { paragraphs: processedParagraphs, fixes } = postProcessCoverLetter(rawContent.paragraphs, {
     metricsToFeature: analysis.metrics_to_feature,
+    forbiddenSkills,
   })
 
   const content = {
