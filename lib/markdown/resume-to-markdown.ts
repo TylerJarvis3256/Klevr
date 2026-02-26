@@ -257,6 +257,7 @@ export function generateCoverLetterMarkdown(
     }
 
     lines.push('Sincerely,')
+    lines.push('')
     lines.push(userInfo.name)
   }
 

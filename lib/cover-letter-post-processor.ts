@@ -636,10 +636,11 @@ function enforceRhythmCap(paragraphs: string[], fixes: string[]): string[] {
  */
 export function postProcessCoverLetter(
   paragraphs: string[],
-  options?: { metricsToFeature?: string[] }
+  options?: { metricsToFeature?: string[]; forbiddenSkills?: string[] }
 ): PostProcessorResult {
   const fixes: string[] = []
   const metricsToFeature = options?.metricsToFeature ?? []
+  const forbiddenSkills = options?.forbiddenSkills ?? []
 
   const processed = paragraphs.map(paragraph => {
     let text = paragraph
@@ -665,6 +666,18 @@ export function postProcessCoverLetter(
 
   // Global rhythm cap: enforce 30% I/My sentence-start ceiling across all paragraphs
   const rhythmProcessed = enforceRhythmCap(processed, fixes)
+
+  // Forbidden skills detection: warn if any forbidden skill appears in output
+  if (forbiddenSkills.length > 0) {
+    for (let i = 0; i < rhythmProcessed.length; i++) {
+      const paraLower = rhythmProcessed[i].toLowerCase()
+      for (const skill of forbiddenSkills) {
+        if (paraLower.includes(skill.toLowerCase())) {
+          fixes.push(`WARNING: forbidden skill '${skill}' detected in paragraph ${i + 1}`)
+        }
+      }
+    }
+  }
 
   // Deduplicate fixes
   const uniqueFixes = [...new Set(fixes)]

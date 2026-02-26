@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getCurrentUser } from '@/lib/auth'
 import { createAiTask } from '@/lib/ai-tasks'
+import { prisma } from '@/lib/prisma'
 
 const schema = z.object({
   applicationId: z.string(),
@@ -20,6 +21,26 @@ export async function POST(request: Request) {
 
     const body = await request.json()
     const { applicationId, voice } = schema.parse(body)
+
+    // Verify job fit assessment was completed before generating cover letter
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId, user_id: user.id },
+      select: { fit_score: true },
+    })
+
+    if (!application) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+    }
+
+    if (application.fit_score === null) {
+      return NextResponse.json(
+        {
+          error:
+            'Job fit assessment must be completed before generating a cover letter. Please run the fit assessment first.',
+        },
+        { status: 400 }
+      )
+    }
 
     // Map 'auto' to undefined so the engine uses AI-recommended voice
     const effectiveVoice = voice === 'auto' ? undefined : voice

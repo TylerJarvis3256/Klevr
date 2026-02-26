@@ -48,6 +48,30 @@ export const VOICE_SELECTION_DESCRIPTIONS: Record<CoverLetterVoiceSelection, str
   ...VOICE_DESCRIPTIONS,
 }
 
+// ---- Skill Ground Truth (anti-hallucination) ----
+
+export interface SkillEvidence {
+  skill: string
+  found_in: Array<{
+    type: 'experience' | 'project'
+    name: string
+    context: string
+  }>
+}
+
+export interface SkillGroundTruth {
+  verified_skills: SkillEvidence[]
+  missing_required: string[]
+  missing_preferred: string[]
+  all_user_skills: string[]
+}
+
+export interface CoverLetterSkillData {
+  matching_skills: string[]
+  missing_required_skills: string[]
+  missing_preferred_skills: string[]
+}
+
 export interface CLSemanticAnalysis {
   primary_pain_point: string
   role_intent: string
@@ -71,6 +95,11 @@ export interface CLSemanticAnalysis {
   metrics_to_feature: string[]
   skills_to_weave: string[]
   recommended_voice: CoverLetterVoice
+  adjacency_map?: Array<{
+    missing_skill: string
+    adjacent_user_skill: string
+    reframe_angle: string
+  }>
   education_to_feature?: {
     credential: string
     graduation_date: string

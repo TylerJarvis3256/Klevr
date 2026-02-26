@@ -435,6 +435,50 @@ describe('postProcessCoverLetter', () => {
     })
   })
 
+  describe('forbidden skills detection', () => {
+    it('warns when a forbidden skill appears in output', () => {
+      const result = postProcessCoverLetter(
+        ['I built REST APIs using FastAPI and deployed to AWS.'],
+        { forbiddenSkills: ['FastAPI'] }
+      )
+      expect(result.fixes).toContain("WARNING: forbidden skill 'FastAPI' detected in paragraph 1")
+    })
+
+    it('detects forbidden skills case-insensitively', () => {
+      const result = postProcessCoverLetter(
+        ['My experience with fastapi includes building microservices.'],
+        { forbiddenSkills: ['FastAPI'] }
+      )
+      expect(result.fixes).toContain("WARNING: forbidden skill 'FastAPI' detected in paragraph 1")
+    })
+
+    it('does not warn when forbidden skills are absent', () => {
+      const result = postProcessCoverLetter(
+        ['I built REST APIs using Flask and deployed to AWS.'],
+        { forbiddenSkills: ['FastAPI', 'React Native'] }
+      )
+      const warnings = result.fixes.filter(f => f.startsWith('WARNING:'))
+      expect(warnings).toHaveLength(0)
+    })
+
+    it('warns for multiple forbidden skills in different paragraphs', () => {
+      const result = postProcessCoverLetter(
+        ['I used FastAPI to build the backend.', 'The mobile app was built with React Native.'],
+        { forbiddenSkills: ['FastAPI', 'React Native'] }
+      )
+      expect(result.fixes).toContain("WARNING: forbidden skill 'FastAPI' detected in paragraph 1")
+      expect(result.fixes).toContain(
+        "WARNING: forbidden skill 'React Native' detected in paragraph 2"
+      )
+    })
+
+    it('does not warn when no forbidden skills provided', () => {
+      const result = postProcessCoverLetter(['I used FastAPI to build services.'])
+      const warnings = result.fixes.filter(f => f.startsWith('WARNING:'))
+      expect(warnings).toHaveLength(0)
+    })
+  })
+
   describe('clean text passes through', () => {
     it('does not modify clean text', () => {
       const clean = 'I built a REST API that served 10K users and reduced latency by 40%.'

@@ -333,6 +333,25 @@ describe('generateCoverLetterMarkdown', () => {
     expect(md).not.toContain('john@test.com |')
   })
 
+  it('renders V2 signature with blank line between Sincerely and name', () => {
+    const md = generateCoverLetterMarkdown(
+      {
+        salutation: 'Dear Hiring Team,',
+        paragraphs: ['Body paragraph.'],
+        closing: 'Sincerely,',
+      },
+      { name: 'Jane Doe', email: 'jane@example.com' },
+      { title: 'Software Engineer', company: 'Acme Corp' }
+    )
+
+    // In markdown, "Sincerely," and "Jane Doe" should be separated by a blank line
+    const lines = md.split('\n')
+    const sincerelyIdx = lines.findIndex(l => l === 'Sincerely,')
+    expect(sincerelyIdx).toBeGreaterThan(-1)
+    expect(lines[sincerelyIdx + 1]).toBe('')
+    expect(lines[sincerelyIdx + 2]).toBe('Jane Doe')
+  })
+
   it('accepts V2 structured content with salutation, paragraphs, and closing', () => {
     const md = generateCoverLetterMarkdown(
       {

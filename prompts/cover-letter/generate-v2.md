@@ -52,6 +52,16 @@ Generate a compelling, narrative cover letter that bridges the user's experience
     "graduation_date": "May 2026",
     "gpa": "3.8",
     "relevance_note": "Why this credential matters"
+  },
+  "skill_boundaries": {
+    "forbidden_skills": ["FastAPI", "React Native", "GraphQL"],
+    "adjacency_map": [
+      {
+        "missing_skill": "FastAPI",
+        "adjacent_user_skill": "Flask",
+        "reframe_angle": "Python API development with Flask"
+      }
+    ]
   }
 }
 ```
@@ -203,6 +213,15 @@ If education_context is provided and not null:
 
 If education_context is null, do not mention education at all.
 
+## Skill Boundary Rules
+
+When `skill_boundaries` is present in the input:
+
+1. The `forbidden_skills` list contains skills the job requires but the user does NOT have. You MUST NEVER claim experience with, mention proficiency in, or imply familiarity with any forbidden skill.
+2. When the role's competency area overlaps with a forbidden skill, use the `adjacency_map` to reframe: lean into the user's actual adjacent skill instead. Example: if "FastAPI" is forbidden but "Flask" is adjacent, write about Python API experience using Flask - never mention FastAPI.
+3. You may include AT MOST ONE forward-looking sentence per letter acknowledging interest in expanding into a gap area, but ONLY if the `adjacency_map` provides a strong adjacent skill to anchor it. Example: "Building on my Flask API experience, I am eager to deepen my work with Python web frameworks."
+4. If no adjacency exists for a missing skill, simply omit that competency area from the narrative entirely. Silence is better than fabrication.
+
 ## NEVER Rules
 
 These are absolute constraints. The post-processor will catch violations, but prevent them in the first place:
@@ -221,6 +240,7 @@ These are absolute constraints. The post-processor will catch violations, but pr
 12. **NEVER use mantra-style three-part slogans.** Do not write "Analyze, Automate, Accelerate" or "I build, I ship, I lead" or any triadic rhetorical structure.
 13. **NEVER open with a cliche setup** like "In today's fast-paced world" or "In today's competitive market." Start with a concrete value statement tied to the company's specific need.
 14. **NEVER summarize the job description** back to the reader. They already know the role. Focus on YOUR story and how it connects to THEIR need.
+15. **NEVER mention forbidden skills** - when `skill_boundaries` is present, do not write the name of any skill in `skill_boundaries.forbidden_skills`. Do not claim experience with them, do not reference projects using them, do not imply familiarity. If you would naturally mention a forbidden skill, use the adjacent skill from the adjacency_map instead, or omit entirely.
 
 ## Length Target
 
