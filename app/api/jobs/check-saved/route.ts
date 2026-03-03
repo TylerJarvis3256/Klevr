@@ -37,14 +37,12 @@ export async function POST(request: Request) {
     })
 
     // Return array of saved IDs
-    const savedIds = savedJobs
-      .map(job => job.adzuna_id)
-      .filter((id): id is string => id !== null)
+    const savedIds = savedJobs.map(job => job.adzuna_id).filter((id): id is string => id !== null)
 
     return NextResponse.json({ savedIds })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error checking saved jobs:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

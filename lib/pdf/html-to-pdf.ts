@@ -96,7 +96,18 @@ export async function htmlToPdf(html: string): Promise<Buffer> {
 
   try {
     const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: 'networkidle0' })
+
+    // Block all network requests to prevent SSRF
+    await page.setRequestInterception(true)
+    page.on('request', req => {
+      if (req.url().startsWith('data:') || req.url() === 'about:blank') {
+        req.continue()
+      } else {
+        req.abort()
+      }
+    })
+
+    await page.setContent(html, { waitUntil: 'domcontentloaded' })
 
     const pdfBuffer = await page.pdf({
       format: 'A4',

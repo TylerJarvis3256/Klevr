@@ -6,9 +6,9 @@ import { getCurrentUser } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 
 const createJobSchema = z.object({
-  title: z.string().min(1, 'Job title is required'),
-  company: z.string().min(1, 'Company name is required'),
-  location: z.string().optional(),
+  title: z.string().min(1, 'Job title is required').max(200),
+  company: z.string().min(1, 'Company name is required').max(200),
+  location: z.string().max(200).optional(),
   job_source: z.enum([
     'LINKEDIN',
     'INDEED',
@@ -19,7 +19,7 @@ const createJobSchema = z.object({
     'OTHER',
   ]),
   job_url: z.string().url().optional().or(z.literal('')),
-  job_description_raw: z.string().min(1, 'Job description is required'),
+  job_description_raw: z.string().min(1, 'Job description is required').max(50000),
 })
 
 export async function POST(request: Request) {
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error creating job:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -120,8 +120,8 @@ export async function GET(request: Request) {
     const status = searchParams.get('status')
     const fitBucket = searchParams.get('fit_bucket')
     const search = searchParams.get('search')
-    const limit = parseInt(searchParams.get('limit') || '50')
-    const offset = parseInt(searchParams.get('offset') || '0')
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '50') || 50, 1), 100)
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0') || 0, 0)
 
     // Build where clause
     const where: Prisma.ApplicationWhereInput = {

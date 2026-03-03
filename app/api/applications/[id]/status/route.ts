@@ -42,11 +42,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       updateData.applied_at = new Date()
     }
 
-    // Update the application
-    await prisma.application.update({
-      where: { id },
+    // Update the application (include user_id to prevent TOCTOU)
+    const result = await prisma.application.updateMany({
+      where: { id, user_id: user.id },
       data: updateData,
     })
+
+    if (result.count === 0) {
+      return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+    }
 
     // Log status change if status actually changed
     if (oldStatus !== newStatus) {
@@ -56,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error updating application status:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

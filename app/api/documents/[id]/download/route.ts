@@ -22,6 +22,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     const document = await prisma.generatedDocument.findFirst({
       where: {
         id,
+        deleted_at: null,
         Application: {
           Job: {
             user_id: user.id,

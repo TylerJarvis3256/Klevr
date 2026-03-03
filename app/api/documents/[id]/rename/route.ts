@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -38,9 +35,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Update display name
+    // Update display name - use document.id from verified ownership check
     await prisma.generatedDocument.update({
-      where: { id },
+      where: { id: document.id },
       data: { display_name: name.trim() },
     })
 

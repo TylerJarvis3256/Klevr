@@ -18,10 +18,23 @@ const createSavedSearchSchema = z.object({
     sort_by: z.enum(['date', 'salary']).optional(),
   }),
   frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']),
-  schedule_time: z.string().regex(/^\d{2}:\d{2}$/), // HH:MM format
+  schedule_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   day_of_week: z.number().min(1).max(7).optional(), // 1 = Monday, 7 = Sunday
   day_of_month: z.number().min(1).max(31).optional(),
-  user_timezone: z.string().default('America/New_York'),
+  user_timezone: z
+    .string()
+    .default('America/New_York')
+    .refine(
+      tz => {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz })
+          return true
+        } catch {
+          return false
+        }
+      },
+      { message: 'Invalid timezone' }
+    ),
   notify_in_app: z.boolean().default(true),
   notify_email: z.boolean().default(true),
 })
@@ -146,7 +159,7 @@ export async function POST(request: Request) {
     return NextResponse.json(savedSearch, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error creating saved search:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

@@ -34,6 +34,16 @@ export class UsageLimitError extends AIError {
 }
 
 /**
+ * Sanitize error messages for API responses.
+ * Returns the message for known error types, logs and hides internal errors.
+ */
+export function sanitizeError(error: unknown): string {
+  if (error instanceof AIError) return error.message
+  console.error('Internal error:', error)
+  return 'An unexpected error occurred'
+}
+
+/**
  * Determine if error should be retried
  */
 export function shouldRetry(error: Error): boolean {

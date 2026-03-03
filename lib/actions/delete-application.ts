@@ -18,7 +18,8 @@ interface DeleteError {
  * then cleans up orphan jobs with no remaining applications.
  */
 export async function deleteApplicationWithCleanup(
-  applicationId: string
+  applicationId: string,
+  userId?: string
 ): Promise<DeleteResult | DeleteError> {
   // Fetch application with its generated documents and job reference
   const application = await prisma.application.findUnique({
@@ -26,6 +27,7 @@ export async function deleteApplicationWithCleanup(
     select: {
       id: true,
       job_id: true,
+      user_id: true,
       GeneratedDocument: {
         select: { id: true, storage_url: true },
       },
@@ -33,6 +35,11 @@ export async function deleteApplicationWithCleanup(
   })
 
   if (!application) {
+    return { success: false, error: 'Application not found' }
+  }
+
+  // Verify ownership if userId provided
+  if (userId && application.user_id !== userId) {
     return { success: false, error: 'Application not found' }
   }
 

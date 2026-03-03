@@ -25,7 +25,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
-    const result = await deleteApplicationWithCleanup(id)
+    const result = await deleteApplicationWithCleanup(id, user.id)
 
     if (!result.success) {
       return NextResponse.json({ error: result.error }, { status: 500 })

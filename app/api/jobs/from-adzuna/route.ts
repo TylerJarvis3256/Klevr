@@ -5,12 +5,12 @@ import { getCurrentUser } from '@/lib/auth'
 import { logActivity } from '@/lib/activity-log'
 
 const saveAdzunaJobSchema = z.object({
-  adzuna_id: z.string().min(1),
-  title: z.string().min(1),
-  company: z.string().min(1),
-  location: z.string().optional(),
-  job_url: z.string().url(),
-  job_description_raw: z.string().min(1),
+  adzuna_id: z.string().min(1).max(100),
+  title: z.string().min(1).max(200),
+  company: z.string().min(1).max(200),
+  location: z.string().max(200).optional(),
+  job_url: z.string().url().max(2000),
+  job_description_raw: z.string().min(1).max(50000),
   salary_min: z.number().optional(),
   salary_max: z.number().optional(),
   contract_type: z.string().optional(),
@@ -51,30 +51,17 @@ export async function POST(request: Request) {
       )
     }
 
-    // Check if job already saved by adzuna_id
-    const existingJob = await prisma.job.findUnique({
+    // Check if this user already saved a job with this adzuna_id
+    const existingJob = await prisma.job.findFirst({
       where: {
         adzuna_id: data.adzuna_id,
+        user_id: user.id,
       },
-      include: {
-        Application: {
-          where: {
-            user_id: user.id,
-          },
-          take: 1,
-        },
-      },
+      select: { id: true },
     })
 
-    if (existingJob && existingJob.Application.length > 0) {
-      return NextResponse.json(
-        {
-          error: 'This job is already in your pipeline',
-          jobId: existingJob.id,
-          applicationId: existingJob.Application[0].id,
-        },
-        { status: 409 }
-      )
+    if (existingJob) {
+      return NextResponse.json({ error: 'This job is already in your pipeline' }, { status: 409 })
     }
 
     // Create job and application in transaction
@@ -149,7 +136,7 @@ export async function POST(request: Request) {
     return NextResponse.json(result, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error saving Adzuna job:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

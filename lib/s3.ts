@@ -59,6 +59,7 @@ export async function generateDownloadUrl(
   const command = new GetObjectCommand({
     Bucket: S3_BUCKET,
     Key: key,
+    ResponseContentDisposition: 'attachment',
   })
 
   return getSignedUrl(s3Client, command, { expiresIn })
@@ -105,6 +106,17 @@ export async function deleteFile(key: string): Promise<void> {
   })
 
   await s3Client.send(command)
+}
+
+/**
+ * Validate that an S3 key belongs to the given user.
+ * Prevents path traversal and cross-user file access.
+ */
+export function validateS3KeyOwnership(key: string, userId: string): void {
+  const expectedPrefix = `resumes/${userId}/`
+  if (!key.startsWith(expectedPrefix) || key.includes('..')) {
+    throw new Error('Access denied: invalid file key')
+  }
 }
 
 /**

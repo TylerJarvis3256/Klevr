@@ -6,7 +6,7 @@ import { ApplicationStatus } from '@prisma/client'
 import { deleteApplicationWithCleanup } from '@/lib/actions/delete-application'
 
 const bulkUpdateSchema = z.object({
-  applicationIds: z.array(z.string()).min(1),
+  applicationIds: z.array(z.string()).min(1).max(100),
   action: z.enum(['update_status', 'delete']),
   data: z
     .object({
@@ -63,6 +63,7 @@ export async function POST(req: NextRequest) {
       const result = await prisma.application.updateMany({
         where: {
           id: { in: applicationIds },
+          user_id: user.id,
         },
         data: {
           status: data.status,
@@ -85,7 +86,7 @@ export async function POST(req: NextRequest) {
       let deletedCount = 0
 
       for (const app of applications) {
-        const result = await deleteApplicationWithCleanup(app.id)
+        const result = await deleteApplicationWithCleanup(app.id, user.id)
         if (result.success) {
           deletedCount++
         }

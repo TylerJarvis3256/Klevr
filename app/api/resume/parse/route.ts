@@ -34,10 +34,15 @@ export async function POST(req: NextRequest) {
     // 3. Get resume text (either from direct paste or file extraction)
     if (parsed.data.key && parsed.data.fileType) {
       // Extract from uploaded file
-      const { downloadFile } = await import('@/lib/s3')
+      const { downloadFile, validateS3KeyOwnership, FILE_SIZE_LIMITS } = await import('@/lib/s3')
       const { extractTextFromBuffer } = await import('@/lib/file-extractor')
 
+      validateS3KeyOwnership(parsed.data.key, user.id)
       const fileBuffer = await downloadFile(parsed.data.key)
+
+      if (fileBuffer.length > FILE_SIZE_LIMITS.RESUME) {
+        return NextResponse.json({ error: 'File exceeds 5MB limit' }, { status: 400 })
+      }
       resumeText = await extractTextFromBuffer(fileBuffer, parsed.data.fileType)
 
       if (!resumeText || resumeText.length < 50) {
@@ -57,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Parse resume using OpenAI
-    const parsedResume = await parseResumeText(resumeText)
+    const parsedResume = await parseResumeText(resumeText, user.id)
 
     // 5. Save parsed resume to profile (not confirmed yet)
     await prisma.profile.upsert({

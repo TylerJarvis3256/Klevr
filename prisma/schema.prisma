@@ -96,7 +96,7 @@ model Job {
   created_at             DateTime        @default(now())
   updated_at             DateTime        @updatedAt
   job_source             JobSource?
-  adzuna_id              String?         @unique
+  adzuna_id              String?
   final_source_url       String?
   scraping_attempted_at  DateTime?
   scraping_completed_at  DateTime?
@@ -106,7 +106,7 @@ model Job {
   Application            Application[]
   User                   User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([adzuna_id])
+  @@unique([adzuna_id, user_id])
   @@index([company])
   @@index([created_at])
   @@index([user_id])
