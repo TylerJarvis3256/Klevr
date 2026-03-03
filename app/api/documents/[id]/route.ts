@@ -29,9 +29,9 @@ export async function DELETE(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Soft delete (mark as deleted)
+    // Soft delete (mark as deleted) - use document.id from verified ownership check
     await prisma.generatedDocument.update({
-      where: { id },
+      where: { id: document.id },
       data: { deleted_at: new Date() },
     })
 

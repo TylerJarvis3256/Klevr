@@ -17,10 +17,23 @@ const replaceSavedSearchSchema = z.object({
     sort_by: z.enum(['date', 'salary']).optional(),
   }),
   frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']),
-  schedule_time: z.string().regex(/^\d{2}:\d{2}$/), // HH:MM format
+  schedule_time: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
   day_of_week: z.number().min(1).max(7).optional(),
   day_of_month: z.number().min(1).max(31).optional(),
-  user_timezone: z.string().default('America/New_York'),
+  user_timezone: z
+    .string()
+    .default('America/New_York')
+    .refine(
+      tz => {
+        try {
+          Intl.DateTimeFormat(undefined, { timeZone: tz })
+          return true
+        } catch {
+          return false
+        }
+      },
+      { message: 'Invalid timezone' }
+    ),
   notify_in_app: z.boolean().default(true),
   notify_email: z.boolean().default(true),
 })
@@ -31,10 +44,7 @@ const replaceSavedSearchSchema = z.object({
  * Replace an existing saved search with a new one
  * Used when user is at max (3) saved searches and wants to save a 4th
  */
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -66,10 +76,11 @@ export async function POST(
       timezone: data.user_timezone,
     })
 
-    // Replace the saved search (update all fields)
+    // Replace the saved search (include user_id to prevent TOCTOU)
     const replaced = await prisma.savedSearch.update({
       where: {
         id,
+        user_id: user.id,
       },
       data: {
         name: data.name,
@@ -87,7 +98,7 @@ export async function POST(
     return NextResponse.json(replaced)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error replacing saved search:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

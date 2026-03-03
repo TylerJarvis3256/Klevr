@@ -19,7 +19,10 @@ const updateSavedSearchSchema = z.object({
     })
     .optional(),
   frequency: z.enum(['DAILY', 'WEEKLY', 'MONTHLY']).optional(),
-  schedule_time: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+  schedule_time: z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    .optional(),
   day_of_week: z.number().min(1).max(7).optional(),
   day_of_month: z.number().min(1).max(31).optional(),
   user_timezone: z.string().optional(),
@@ -32,10 +35,7 @@ const updateSavedSearchSchema = z.object({
  *
  * Get single saved search with latest run info
  */
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -74,10 +74,7 @@ export async function GET(
  * Update saved search
  * - Recalculates next_run_at if frequency or schedule changed
  */
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -118,10 +115,11 @@ export async function PATCH(
       })
     }
 
-    // Update saved search
+    // Update saved search (include user_id to prevent TOCTOU)
     const updated = await prisma.savedSearch.update({
       where: {
         id,
+        user_id: user.id,
       },
       data: {
         ...data,
@@ -132,7 +130,7 @@ export async function PATCH(
     return NextResponse.json(updated)
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.format() }, { status: 400 })
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
     }
     console.error('Error updating saved search:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -144,10 +142,7 @@ export async function PATCH(
  *
  * Delete (soft delete) saved search by setting active = false
  */
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -168,10 +163,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Saved search not found' }, { status: 404 })
     }
 
-    // Soft delete
+    // Soft delete (include user_id to prevent TOCTOU)
     await prisma.savedSearch.update({
       where: {
         id,
+        user_id: user.id,
       },
       data: {
         active: false,

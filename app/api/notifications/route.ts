@@ -19,8 +19,8 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url)
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100)
+    const page = Math.max(parseInt(searchParams.get('page') || '1') || 1, 1)
+    const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '20') || 20, 1), 100)
     const unreadOnly = searchParams.get('unread_only') === 'true'
 
     const where = {

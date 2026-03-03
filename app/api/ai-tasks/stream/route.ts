@@ -53,11 +53,12 @@ export async function GET(request: NextRequest) {
       const interval = setInterval(async () => {
         try {
           const updatedTask = await prisma.aiTask.findUnique({
-            where: { id: taskId },
+            where: { id: taskId, user_id: user.id },
           })
 
           if (!updatedTask) {
             clearInterval(interval)
+            clearTimeout(maxTimeout)
             controller.close()
             return
           }
@@ -71,18 +72,30 @@ export async function GET(request: NextRequest) {
           // Close stream when task is complete
           if (updatedTask.status === 'SUCCEEDED' || updatedTask.status === 'FAILED') {
             clearInterval(interval)
+            clearTimeout(maxTimeout)
             controller.close()
           }
         } catch (error) {
           console.error('SSE error:', error)
           clearInterval(interval)
+          clearTimeout(maxTimeout)
           controller.close()
         }
       }, 2000) // Poll every 2 seconds
 
+      // Max connection timeout (5 minutes)
+      const maxTimeout = setTimeout(
+        () => {
+          clearInterval(interval)
+          controller.close()
+        },
+        5 * 60 * 1000
+      )
+
       // Cleanup on close
       request.signal.addEventListener('abort', () => {
         clearInterval(interval)
+        clearTimeout(maxTimeout)
         controller.close()
       })
     },

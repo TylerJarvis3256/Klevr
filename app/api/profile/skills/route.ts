@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/lib/auth'
 
 const skillsSchema = z.object({
   skills: z
-    .array(z.string().max(100, 'Skill name cannot exceed 100 characters'))
+    .array(z.string().min(1).max(100, 'Skill name cannot exceed 100 characters'))
     .max(200, 'Cannot have more than 200 skills'),
 })
 

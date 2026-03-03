@@ -50,9 +50,9 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 })
     }
 
-    // Update note
+    // Update note - use note.id from verified ownership check
     const updatedNote = await prisma.note.update({
-      where: { id },
+      where: { id: note.id },
       data: { content },
     })
 
@@ -96,9 +96,9 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 })
     }
 
-    // Delete note
+    // Delete note - use note.id from verified ownership check
     await prisma.note.delete({
-      where: { id },
+      where: { id: note.id },
     })
 
     return NextResponse.json({ success: true })

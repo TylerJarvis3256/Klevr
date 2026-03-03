@@ -153,7 +153,9 @@ const COVER_LETTER_CSS = `
  * Supports both resume and cover letter variants.
  */
 export function markdownToHtml(markdown: string, options?: MarkdownToHtmlOptions): string {
-  const htmlBody = marked.parse(markdown, { async: false }) as string
+  // Strip any raw HTML tags to prevent XSS/SSRF via injected content
+  const sanitizedMarkdown = markdown.replace(/<[^>]*>/g, '')
+  const htmlBody = marked.parse(sanitizedMarkdown, { async: false }) as string
   const css = options?.variant === 'cover-letter' ? COVER_LETTER_CSS : RESUME_CSS
 
   return `<!DOCTYPE html>

@@ -6,6 +6,7 @@ import {
   generateResumeKey,
   generateUploadUrl,
   downloadFile,
+  validateS3KeyOwnership,
   ALLOWED_MIME_TYPES,
   FILE_SIZE_LIMITS,
 } from '@/lib/s3'
@@ -117,9 +118,14 @@ async function handleUpload(
 
   // Step 3: s3Key provided - process uploaded file
   try {
+    validateS3KeyOwnership(data.s3Key, userId)
     const buffer = await downloadFile(data.s3Key)
+
+    if (buffer.length > FILE_SIZE_LIMITS.RESUME) {
+      return NextResponse.json({ error: 'File exceeds 5MB limit' }, { status: 400 })
+    }
     const text = await extractTextFromBuffer(buffer, data.fileType)
-    const parsedResume = await parseResumeText(text)
+    const parsedResume = await parseResumeText(text, userId)
 
     // Create ResumeUpload record
     const resumeUpload = await prisma.resumeUpload.create({
@@ -146,7 +152,7 @@ async function handleUpload(
     console.error('Resume processing error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Failed to process resume'
 
-    // Create record with parsing error
+    // Create record with parsing error (log full error internally)
     await prisma.resumeUpload.create({
       data: {
         user_id: userId,
@@ -159,13 +165,13 @@ async function handleUpload(
       },
     })
 
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to process resume' }, { status: 500 })
   }
 }
 
 async function handlePaste(userId: string, data: { resumeText: string }) {
   try {
-    const parsedResume = await parseResumeText(data.resumeText)
+    const parsedResume = await parseResumeText(data.resumeText, userId)
 
     const resumeUpload = await prisma.resumeUpload.create({
       data: {
@@ -184,8 +190,7 @@ async function handlePaste(userId: string, data: { resumeText: string }) {
     return NextResponse.json({ resumeUploadId: resumeUpload.id, summary })
   } catch (error) {
     console.error('Resume paste processing error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to process resume'
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to process resume' }, { status: 500 })
   }
 }
 

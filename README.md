@@ -411,14 +411,18 @@ A `loadPrompt()` utility reads these files at runtime, extracting both the templ
 
 Klevr enforces data isolation through **application-level user scoping** - every database query is filtered by `user_id` at the Prisma call site, ensuring no cross-tenant data access is possible even if an API endpoint has a logic bug.
 
-- **User scoping on every query** - Every `prisma.findMany()` includes `where: { user_id }`, every `findUnique()` verifies ownership after fetch, and every `update()`/`delete()` includes both `id` and `user_id` in the where clause. This is enforced as a codebase invariant, not a suggestion.
+- **User scoping on every query** - Every `prisma.findMany()` includes `where: { user_id }`, every `findUnique()` verifies ownership after fetch, and every `update()`/`delete()` includes both `id` and `user_id` in the where clause. Mutation queries use the verified record ID from a prior ownership lookup, eliminating time-of-check-time-of-use (TOCTOU) race conditions.
 - **Auth0 session management** - Cookie-based sessions via `@auth0/nextjs-auth0` with Auth0 middleware on every route. Sessions are validated server-side - no client-side token handling or local storage.
+- **Security headers** - All responses include `Content-Security-Policy` (restricting script/style/connect sources), `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Permissions-Policy` disabling camera, microphone, and geolocation. Configured via `next.config.js` headers.
 - **Resume confirmation gate** - AI features (job scoring, resume generation, cover letters) are gated behind `parsed_resume_confirmed_at`. Until the user explicitly confirms their parsed resume is accurate, no AI tasks can be created - preventing the system from generating documents based on incorrectly parsed input.
-- **Per-user rate limiting** - An in-memory rate limiter enforces 60 AI requests per minute per user. Monthly usage caps (200 job scores, 30 resumes, 30 cover letters) are tracked in the `UsageTracking` table and checked before every AI task creation.
-- **Presigned URL isolation** - Resume uploads and document downloads use short-lived S3 presigned URLs (5-minute upload, 15-minute download). Storage keys are prefixed with `user_id` or `application_id`, preventing URL guessing attacks.
+- **API rate limiting** - An in-memory token-bucket rate limiter enforces per-user request limits on abuse-prone routes (AI task creation, resume parsing, bulk operations). Monthly usage caps (200 job scores, 30 resumes, 30 cover letters) are tracked in the `UsageTracking` table and enforced atomically via Prisma `$transaction` to prevent concurrent request bypass.
+- **S3 key ownership validation** - Resume uploads and document downloads use short-lived presigned URLs (5-minute upload, 15-minute download). Server-side operations validate S3 key ownership by checking user ID path prefixes and rejecting path traversal attempts (`..`), preventing cross-user file access even with a valid key.
+- **SSRF prevention in PDF pipeline** - The Puppeteer-based PDF renderer blocks all network requests via request interception, only allowing `data:` URIs and `about:blank`. Markdown input is sanitized to strip raw HTML tags before parsing, preventing injected content from triggering outbound requests during rendering.
+- **Prompt injection defenses** - All 12 AI prompt templates include security constraints instructing the model to ignore instructions embedded in user-provided content (job descriptions, resume text), follow only the system prompt, and never emit raw HTML, script tags, or external URLs.
 - **Server-only secrets** - All API keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `AWS_SECRET_ACCESS_KEY`, `INNGEST_SIGNING_KEY`) are server-only environment variables with no `NEXT_PUBLIC_` prefix. Next.js enforces this at build time.
-- **Structured error classes** - AI failures use typed error classes (`AIError`, `RateLimitError`, `TimeoutError`, `ValidationError`, `UsageLimitError`) that never expose internal details to the client. Error messages are sanitized before reaching the API response.
-- **Soft deletion for documents** - Generated documents use a `deleted_at` timestamp rather than hard deletion, enabling restoration and preventing accidental data loss.
+- **Structured error classes** - AI failures use typed error classes (`AIError`, `RateLimitError`, `TimeoutError`, `ValidationError`, `UsageLimitError`) that never expose internal details to the client. All API error responses are sanitized through a `sanitizeError()` utility, preventing stack traces and internal messages from reaching users.
+- **Soft deletion for documents** - Generated documents use a `deleted_at` timestamp rather than hard deletion, enabling restoration and preventing accidental data loss. All document queries filter by `deleted_at: null` to exclude soft-deleted records from API responses and includes.
+- **Account deletion cleanup** - Deleting an account removes all database records, purges user files from S3 (via `ListObjectsV2` + `DeleteObjects`), and deletes the Auth0 identity via the Management API, ensuring no orphaned data persists across any system.
 
 ---
 
@@ -681,7 +685,9 @@ lib/
 ├── one-page-governor.ts Adaptive content compression for A4 constraints
 ├── ai-tasks.ts          AI task lifecycle management
 ├── usage.ts             Monthly usage tracking and limit enforcement
-├── s3.ts                S3 client with presigned URL generation
+├── s3.ts                S3 client with presigned URL generation and key validation
+├── api-rate-limiter.ts  Per-user API rate limiting for abuse-prone routes
+├── validation.ts        Input validation utilities (ID format, integer parsing)
 ├── auth.ts              Auth0 session helpers and user lookup
 ├── prisma.ts            Prisma client singleton
 └── errors.ts            Typed error hierarchy for AI operations

@@ -1,11 +1,19 @@
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+import { JobSource } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const updateJobSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  company: z.string().min(1).max(200).optional(),
+  location: z.string().max(200).nullable().optional(),
+  job_source: z.nativeEnum(JobSource).nullable().optional(),
+  job_url: z.string().url().or(z.literal('')).nullable().optional(),
+  job_description_raw: z.string().min(1).max(50000).optional(),
+})
+
+export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -23,6 +31,7 @@ export async function GET(
         Application: {
           include: {
             GeneratedDocument: {
+              where: { deleted_at: null },
               orderBy: { created_at: 'desc' },
             },
             Note: {
@@ -44,10 +53,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -56,7 +62,7 @@ export async function PATCH(
 
     const { id } = await params
     const body = await request.json()
-    const { title, company, location, job_source, job_url, job_description_raw } = body
+    const data = updateJobSchema.parse(body)
 
     const job = await prisma.job.updateMany({
       where: {
@@ -64,12 +70,12 @@ export async function PATCH(
         user_id: user.id,
       },
       data: {
-        ...(title && { title }),
-        ...(company && { company }),
-        ...(location !== undefined && { location }),
-        ...(job_source !== undefined && { job_source }),
-        ...(job_url !== undefined && { job_url }),
-        ...(job_description_raw && { job_description_raw }),
+        ...(data.title && { title: data.title }),
+        ...(data.company && { company: data.company }),
+        ...(data.location !== undefined && { location: data.location }),
+        ...(data.job_source !== undefined && { job_source: data.job_source }),
+        ...(data.job_url !== undefined && { job_url: data.job_url }),
+        ...(data.job_description_raw && { job_description_raw: data.job_description_raw }),
       },
     })
 
@@ -79,15 +85,15 @@ export async function PATCH(
 
     return NextResponse.json({ success: true })
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Invalid input' }, { status: 400 })
+    }
     console.error('Error updating job:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {

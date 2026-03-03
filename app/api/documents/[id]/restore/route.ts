@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
-export async function POST(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -28,9 +25,9 @@ export async function POST(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Restore (clear deleted_at)
+    // Restore (clear deleted_at) - use document.id from verified ownership check
     await prisma.generatedDocument.update({
-      where: { id },
+      where: { id: document.id },
       data: { deleted_at: null },
     })
 

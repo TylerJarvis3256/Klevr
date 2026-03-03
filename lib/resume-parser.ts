@@ -1,4 +1,4 @@
-import { openai, MODELS } from './openai'
+import { openai, MODELS, callOpenAI } from './openai'
 import { readFile } from 'fs/promises'
 import path from 'path'
 
@@ -50,27 +50,32 @@ export interface ParsedResume {
 /**
  * Parse resume text using OpenAI
  */
-export async function parseResumeText(resumeText: string): Promise<ParsedResume> {
+export async function parseResumeText(
+  resumeText: string,
+  userId: string = 'system'
+): Promise<ParsedResume> {
   // Read the prompt template
   const promptPath = path.join(process.cwd(), 'prompts', 'resume', 'parse-v1.md')
   const prompt = await readFile(promptPath, 'utf-8')
 
-  // Call OpenAI
-  const response = await openai.chat.completions.create({
-    model: MODELS.GPT4O_MINI,
-    messages: [
-      {
-        role: 'system',
-        content: prompt,
-      },
-      {
-        role: 'user',
-        content: resumeText,
-      },
-    ],
-    response_format: { type: 'json_object' },
-    temperature: 0.1,
-  })
+  // Call OpenAI with rate limiting
+  const response = await callOpenAI(userId, () =>
+    openai.chat.completions.create({
+      model: MODELS.GPT4O_MINI,
+      messages: [
+        {
+          role: 'system',
+          content: prompt,
+        },
+        {
+          role: 'user',
+          content: resumeText,
+        },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.1,
+    })
+  )
 
   const content = response.choices[0].message.content
   if (!content) {

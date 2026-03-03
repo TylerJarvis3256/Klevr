@@ -87,6 +87,44 @@ export async function checkUsageLimit(userId: string, type: AiTaskType): Promise
   return limit.current < limit.max
 }
 
+const FIELD_MAP: Record<AiTaskType, string> = {
+  JOB_SCORING: 'fit_count',
+  RESUME_GENERATION: 'resume_count',
+  COVER_LETTER_GENERATION: 'cover_letter_count',
+  COMPANY_RESEARCH: 'fit_count',
+}
+
+/**
+ * Atomically check and increment usage in a single transaction.
+ * Prevents race conditions where concurrent requests all pass the check.
+ * Returns true if usage was incremented (under limit), false if limit exceeded.
+ */
+export async function checkAndIncrementUsage(userId: string, type: AiTaskType): Promise<boolean> {
+  const month = getCurrentMonth()
+  const field = FIELD_MAP[type]
+  const limit = USAGE_LIMITS[type]
+  if (!field) return true
+
+  return prisma.$transaction(async tx => {
+    const usage = await tx.usageTracking.upsert({
+      where: { user_id_month: { user_id: userId, month } },
+      create: { user_id: userId, month, [field]: 1 },
+      update: { [field]: { increment: 1 } },
+    })
+
+    if ((usage[field as keyof typeof usage] as number) > limit) {
+      // Over limit - roll back the increment
+      await tx.usageTracking.update({
+        where: { user_id_month: { user_id: userId, month } },
+        data: { [field]: { decrement: 1 } },
+      })
+      return false
+    }
+
+    return true
+  })
+}
+
 /**
  * Get usage percentage
  */

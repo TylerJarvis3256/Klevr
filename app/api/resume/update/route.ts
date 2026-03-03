@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Parse resume text
-      const parsedResume = await parseResumeText(validatedData.resumeText)
+      const parsedResume = await parseResumeText(validatedData.resumeText, user.id)
 
       // Don't auto-confirm - return for user review
       return NextResponse.json({
@@ -86,10 +86,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process resume update' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to process resume update' }, { status: 500 })
   }
 }
 
@@ -105,16 +102,23 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await req.json()
-    const { key, fileName, fileType } = body
+    const patchSchema = z.object({
+      key: z.string().min(1),
+      fileName: z.string().min(1).max(500),
+      fileType: z.string().min(1).max(100),
+    })
 
-    if (!key || !fileName || !fileType) {
-      return NextResponse.json({ error: 'key, fileName, and fileType required' }, { status: 400 })
-    }
+    const body = await req.json()
+    const { key, fileName, fileType } = patchSchema.parse(body)
 
     // Download file from S3
-    const { downloadFile } = await import('@/lib/s3')
+    const { downloadFile, validateS3KeyOwnership, FILE_SIZE_LIMITS } = await import('@/lib/s3')
+    validateS3KeyOwnership(key, user.id)
     const fileBuffer = await downloadFile(key)
+
+    if (fileBuffer.length > FILE_SIZE_LIMITS.RESUME) {
+      return NextResponse.json({ error: 'File exceeds 5MB limit' }, { status: 400 })
+    }
 
     // Extract text from file (server-side)
     const { extractTextFromBuffer } = await import('@/lib/file-extractor')
@@ -128,7 +132,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     // Parse resume text
-    const parsedResume = await parseResumeText(resumeText)
+    const parsedResume = await parseResumeText(resumeText, user.id)
 
     // Store file info but don't confirm yet
     await prisma.profile.update({
@@ -147,10 +151,7 @@ export async function PATCH(req: NextRequest) {
     })
   } catch (error) {
     console.error('PATCH /api/resume/update error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to parse uploaded resume' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to parse uploaded resume' }, { status: 500 })
   }
 }
 
@@ -169,7 +170,7 @@ export async function PUT(req: NextRequest) {
     const body = await req.json()
     const { parsedResume } = body
 
-    if (!parsedResume) {
+    if (!parsedResume || typeof parsedResume !== 'object') {
       return NextResponse.json({ error: 'parsedResume required' }, { status: 400 })
     }
 
@@ -204,9 +205,6 @@ export async function PUT(req: NextRequest) {
     })
   } catch (error) {
     console.error('PUT /api/resume/update error:', error)
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to confirm resume update' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to confirm resume update' }, { status: 500 })
   }
 }

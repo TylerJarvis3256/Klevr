@@ -64,9 +64,13 @@ export function parseAnthropicJson<T>(message: Anthropic.Message): T {
   const raw = '{' + textBlock.text
 
   try {
-    return JSON.parse(raw) as T
+    const parsed = JSON.parse(raw)
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Expected JSON object')
+    }
+    return parsed as T
   } catch {
-    console.error('Failed to parse Anthropic JSON:', raw.slice(0, 500))
+    console.error('Failed to parse Anthropic JSON:', raw.slice(0, 200))
     throw new Error('Invalid JSON from Anthropic')
   }
 }

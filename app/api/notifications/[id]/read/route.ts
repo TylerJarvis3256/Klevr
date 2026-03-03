@@ -7,10 +7,7 @@ import { prisma } from '@/lib/prisma'
  *
  * Mark a single notification as read
  */
-export async function PATCH(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const user = await getCurrentUser()
     if (!user) {
@@ -34,6 +31,7 @@ export async function PATCH(
     const updated = await prisma.notification.update({
       where: {
         id,
+        user_id: user.id,
       },
       data: {
         read_at: new Date(),
