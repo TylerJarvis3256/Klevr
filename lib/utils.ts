@@ -45,6 +45,19 @@ export function sanitizeEmDashes(text: string): string {
 }
 
 /**
+ * Sanitize a string for use as a filename.
+ * Removes filesystem-unsafe characters and collapses whitespace.
+ */
+export function sanitizeFileName(name: string): string {
+  return (
+    name
+      .replace(/[/\\:*?"<>|()]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim() || 'Document'
+  )
+}
+
+/**
  * Recursively sanitize em/en dashes in all string values of a nested structure
  */
 export function deepSanitizeEmDashes<T>(value: T): T {

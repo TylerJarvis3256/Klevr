@@ -3,6 +3,7 @@ import {
   formatDate,
   getCurrentMonth,
   truncate,
+  sanitizeFileName,
   sanitizeEmDashes,
   deepSanitizeEmDashes,
 } from '@/lib/utils'
@@ -83,6 +84,46 @@ describe('truncate', () => {
 
   it('handles empty string', () => {
     expect(truncate('', 10)).toBe('')
+  })
+})
+
+describe('sanitizeFileName', () => {
+  it('removes filesystem-unsafe characters', () => {
+    expect(sanitizeFileName('file/name:test*doc')).toBe('filenametestdoc')
+  })
+
+  it('removes parentheses', () => {
+    expect(sanitizeFileName('Company (Inc)')).toBe('Company Inc')
+  })
+
+  it('removes quotes and angle brackets', () => {
+    expect(sanitizeFileName('a "b" <c>')).toBe('a b c')
+  })
+
+  it('removes pipe and backslash', () => {
+    expect(sanitizeFileName('a|b\\c')).toBe('abc')
+  })
+
+  it('collapses multiple spaces into one', () => {
+    expect(sanitizeFileName('Tyler   Jarvis   Resume')).toBe('Tyler Jarvis Resume')
+  })
+
+  it('trims leading and trailing whitespace', () => {
+    expect(sanitizeFileName('  hello  ')).toBe('hello')
+  })
+
+  it('returns "Document" for empty string', () => {
+    expect(sanitizeFileName('')).toBe('Document')
+  })
+
+  it('returns "Document" when all characters are stripped', () => {
+    expect(sanitizeFileName('/:*?"<>|()')).toBe('Document')
+  })
+
+  it('handles a realistic display name', () => {
+    expect(sanitizeFileName('Tyler Jarvis Software Engineer WITS')).toBe(
+      'Tyler Jarvis Software Engineer WITS'
+    )
   })
 })
 
