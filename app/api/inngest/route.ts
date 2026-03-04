@@ -7,6 +7,7 @@ import { coverLetterGenerationFunction } from '@/inngest/functions/cover-letter-
 import { companyResearchFunction } from '@/inngest/functions/company-research'
 import { runSavedSearches } from '@/inngest/functions/run-saved-searches'
 import { documentCleanupFunction } from '@/inngest/functions/document-cleanup'
+import { batchRescoreFunction } from '@/inngest/functions/batch-rescore'
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -18,5 +19,6 @@ export const { GET, POST, PUT } = serve({
     companyResearchFunction,
     runSavedSearches,
     documentCleanupFunction,
+    batchRescoreFunction,
   ],
 })

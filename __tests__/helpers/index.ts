@@ -9,6 +9,7 @@ export {
   createResumeUpload,
   createProject,
   createSemanticAnalysis,
+  createSemanticFitAnalysis,
   resetFactoryCounters,
 } from './factories'
 

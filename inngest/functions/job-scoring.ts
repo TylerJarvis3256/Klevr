@@ -2,7 +2,8 @@ import { inngest } from '@/lib/inngest'
 import { prisma } from '@/lib/prisma'
 import { parseJobDescription } from '@/lib/job-parser'
 import { calculateFitScore } from '@/lib/fit-scorer'
-import { generateFitExplanation } from '@/lib/fit-explainer'
+import { generateFitExplanation, buildExplanationInput } from '@/lib/fit-explainer'
+import { analyzeSemanticFit, buildSemanticScorerInput } from '@/lib/semantic-scorer'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
 import { logActivity } from '@/lib/activity-log'
 import { AiTaskStatus } from '@prisma/client'
@@ -56,7 +57,7 @@ export const jobScoringFunction = inngest.createFunction(
     })
 
     try {
-      // Step 3: Fetch application, job, and profile
+      // Step 3: Fetch application, job, profile, and structured data
       const application = await step.run('fetch-data', async () => {
         return prisma.application.findUnique({
           where: { id: applicationId },
@@ -65,6 +66,11 @@ export const jobScoringFunction = inngest.createFunction(
             User: {
               include: {
                 Profile: true,
+                Education: true,
+                JobExperience: {
+                  include: { Bullets: true },
+                },
+                Project: true,
               },
             },
           },
@@ -95,45 +101,83 @@ export const jobScoringFunction = inngest.createFunction(
         })
       })
 
-      // Step 6: Calculate fit score
-      const fitScore = await step.run('calculate-fit', async () => {
+      // Step 6: Semantic fit analysis (LLM)
+      const semanticAnalysis = await step.run('semantic-fit-analysis', async () => {
+        const input = buildSemanticScorerInput(
+          profile.parsed_resume as unknown as ParsedResume | null,
+          {
+            skills: profile.skills || [],
+            Education: application.User.Education,
+            JobExperience: application.User.JobExperience,
+            Project: application.User.Project,
+          },
+          application.Job,
+          parsedJob
+        )
+        return analyzeSemanticFit(userId, input)
+      })
+
+      // Step 7: Calculate composite fit score
+      const fitScore = await step.run('calculate-composite-fit', async () => {
+        const experienceInput = {
+          education: application.User.Education.map(e => ({
+            degree: e.degree,
+            major: e.major,
+          })),
+          experience: application.User.JobExperience.map(e => ({
+            title: e.title,
+          })),
+          projects: application.User.Project.map(p => ({
+            name: p.name,
+          })),
+        }
+
         return calculateFitScore(
-          profile.parsed_resume as unknown as ParsedResume,
+          experienceInput,
           parsedJob,
+          semanticAnalysis,
           {
             job_types: profile.job_types || [],
             preferred_locations: profile.preferred_locations || [],
           },
-          application.Job.location || undefined,
-          profile.skills || []
+          application.Job.location || undefined
         )
       })
 
-      // Step 7: Generate explanation
+      // Step 8: Generate explanation
       const explanation = await step.run('generate-explanation', async () => {
-        return generateFitExplanation(userId, {
-          fit_bucket: fitScore.fit_bucket,
-          fit_score: fitScore.fit_score,
-          matching_skills: fitScore.skills_match.matching_skills,
-          missing_required_skills: fitScore.skills_match.missing_required_skills,
-          missing_preferred_skills: fitScore.skills_match.missing_preferred_skills,
-          job_title: application.Job.title,
-          user_major: profile.major || undefined,
-        })
+        const explanationInput = buildExplanationInput(
+          fitScore.fit_bucket,
+          fitScore.fit_score,
+          semanticAnalysis,
+          application.Job.title,
+          profile.major || undefined
+        )
+        return generateFitExplanation(userId, explanationInput)
       })
 
-      // Step 8: Save results to application
+      // Step 9: Save results to application
       await step.run('save-results', async () => {
+        // Extract skill names from semantic analysis for string[] fields
+        const matchingSkills = semanticAnalysis.matched_skills.map(s => s.skill)
+        const missingRequired = semanticAnalysis.missing_skills
+          .filter(s => s.severity === 'required')
+          .map(s => s.skill)
+        const missingPreferred = semanticAnalysis.missing_skills
+          .filter(s => s.severity === 'preferred')
+          .map(s => s.skill)
+
         await prisma.application.update({
           where: { id: applicationId },
           data: {
             fit_bucket: fitScore.fit_bucket,
             fit_score: fitScore.fit_score,
             score_explanation: explanation,
-            matching_skills: fitScore.skills_match.matching_skills,
-            missing_skills: fitScore.skills_match.missing_required_skills, // Keep for backwards compatibility
-            missing_required_skills: fitScore.skills_match.missing_required_skills,
-            missing_preferred_skills: fitScore.skills_match.missing_preferred_skills,
+            matching_skills: matchingSkills,
+            missing_skills: missingRequired, // Keep for backwards compatibility
+            missing_required_skills: missingRequired,
+            missing_preferred_skills: missingPreferred,
+            semantic_fit_analysis: semanticAnalysis as any,
             score_count: {
               increment: 1,
             },
@@ -141,12 +185,12 @@ export const jobScoringFunction = inngest.createFunction(
         })
       })
 
-      // Step 9: Increment usage
+      // Step 10: Increment usage
       await step.run('increment-usage', async () => {
         await incrementUsage(userId, 'JOB_SCORING')
       })
 
-      // Step 10: Mark success and log activity
+      // Step 11: Mark success and log activity
       await step.run('mark-success', async () => {
         await prisma.aiTask.update({
           where: { id: taskId },

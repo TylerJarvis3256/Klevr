@@ -198,6 +198,49 @@ export function createSemanticAnalysis(overrides: Record<string, unknown> = {}) 
   }
 }
 
+// ─── SemanticFitAnalysis ──────────────────────────────
+
+export function createSemanticFitAnalysis(overrides: Record<string, unknown> = {}) {
+  return {
+    semantic_skill_score: 0.75,
+    persona_fit_score: 0.65,
+    matched_skills: [
+      {
+        skill: 'TypeScript',
+        match_type: 'exact' as const,
+        evidence: 'Listed in candidate skills',
+      },
+      { skill: 'React', match_type: 'exact' as const, evidence: 'Listed in candidate skills' },
+      {
+        skill: 'JavaScript',
+        match_type: 'inferred' as const,
+        evidence: 'Implied by TypeScript and React experience',
+      },
+    ],
+    missing_skills: [
+      {
+        skill: 'Docker',
+        severity: 'required' as const,
+        suggestion: 'Consider learning containerization basics',
+      },
+      {
+        skill: 'GraphQL',
+        severity: 'preferred' as const,
+        suggestion: 'Build a small project with GraphQL',
+      },
+    ],
+    skill_reasoning:
+      'The candidate has strong frontend skills with TypeScript and React that match core requirements. JavaScript is inferred from their TypeScript and React experience. Missing Docker is a gap for the DevOps aspects of the role.',
+    ideal_persona:
+      'A collaborative, fast-paced team player comfortable with ambiguity in a startup environment',
+    persona_reasoning:
+      'The JD emphasizes collaboration, fast iteration, and wearing multiple hats - typical startup signals. The candidate needs to be comfortable with ambiguity and rapid context switching.',
+    persona_alignment:
+      "The candidate's internship at a small tech company and varied project work suggest good alignment with the fast-paced team culture described in the job posting.",
+    ...overrides,
+  }
+}
+
 // ─── ResumeUpload ─────────────────────────────────────
 
 export function createResumeUpload(overrides: Record<string, unknown> = {}) {

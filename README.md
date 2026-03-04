@@ -109,6 +109,7 @@ erDiagram
         string[] missing_required_skills
         string[] missing_preferred_skills
         string score_explanation
+        json semantic_fit_analysis
         json company_research
     }
     GeneratedDocument {
@@ -360,38 +361,45 @@ REEXPAND: Page-Fill Optimization
 
 A block-based height estimator (`estimateHeightPx`) models the actual Puppeteer rendering output with a two-phase approach. Phase 1 parses markdown into logical blocks (h1, h2, bullet groups, and paragraphs), correctly identifying that consecutive non-blank lines - such as skills categories, education degree+school, and experience title+company - render as a single `<p>` element in HTML. Phase 2 calculates pixel height per block using separated line-height and margin constants: h1 (29px line + 4px margin), h2 (21px line + 12-16px top margin + 3px padding + 1px border + 8px bottom margin), body text (21px/line at 100 CPL), italic text (19px/line at 115 CPL), and bullets (16px/line at 110 CPL). Margins are applied once per element rather than per wrapped line, and the first h2 after the header receives a reduced 12px top margin matching the CSS `h1 + p + h2` rule. The estimator sums pixel heights against the real A4 page budget (1043px minus 10px safety buffer) rather than counting abstract lines. The governor never operates on rendered output; it predicts fit from structured content and regenerates markdown only to verify.
 
-### 4. Hybrid Fit Scoring with Weighted Multi-Signal Analysis
+### 4. Semantic Fit Scoring with LLM-Powered Skill Inference
 
-**Problem:** A simple keyword-matching approach to job fit scoring produces misleading results - a job that matches 8/10 skills but requires 5 years of experience should score differently than one matching 6/10 skills at entry level. Users need scores that reflect their actual candidacy, not just vocabulary overlap.
+**Problem:** Exact keyword matching for job fit scoring produces false negatives at scale - flagging "Git" as missing when the user lists "Git/GitHub", or missing "frontend development" when the user built three React apps. Early-career candidates are especially penalized because their skills are implicit in projects and coursework rather than listed as professional keywords. Beyond skills, keyword matching cannot assess persona alignment - whether a startup-oriented candidate fits a corporate role, or vice versa.
 
-**Solution:** Fit scoring combines local computation with AI-powered parsing in a three-component weighted model:
+**Solution:** Fit scoring uses a hybrid LLM + algorithmic blend across four weighted components. A single GPT-4o-mini call handles semantic skill matching (synonym recognition, implicit skill inference from projects/coursework/bullets) and persona fit analysis (extracting ideal candidate persona from JD signals and evaluating alignment). Algorithmic components handle experience/education scoring and preference matching deterministically.
 
 ```
-Component 1: Skills Match (50% weight)
-  → Fuzzy matching via lib/skills-matcher.ts
-  → Handles aliases ("JS" ↔ "JavaScript"), partial matches, category grouping
-  → Separately tracks required vs. preferred skill gaps
+Component 1: Semantic Skills (40% weight) - LLM
+  -> Chain-of-thought skill inference via lib/semantic-scorer.ts
+  -> Synonym recognition ("Git/GitHub", "JS/JavaScript/ECMAScript")
+  -> Implicit skill inference from projects, bullets, education
+  -> Inferred skills get 0.7x credit vs exact matches
+  -> 70% weight on required skills, 30% on preferred
 
-Component 2: Experience & Education (30% weight)
-  → Base score for having any experience (0.15)
-  → Education relevance: major alignment with job requirements (+0.05)
-  → Experience relevance: title/domain overlap (+0.05)
-  → Project portfolio presence (+0.05)
+Component 2: Experience & Education (25% weight) - Algorithmic
+  -> Education: has any (0.15) + relevant major (0.15) + degree level (0.10)
+  -> Experience: has any (0.10) + count bonus (up to 0.15) + relevant title (0.10)
+  -> Projects: has any (0.10) + count bonus (up to 0.15)
 
-Component 3: Preference Alignment (20% weight)
-  → Job type match against user preferences (+0.10)
-  → Location match including remote detection (+0.10)
+Component 3: Persona Fit (20% weight) - LLM
+  -> Extracts ideal candidate persona from JD signals
+  -> Evaluates alignment from experience types, project breadth, bullet language
+  -> Defaults to 0.5 (neutral) when insufficient signal
+  -> Calibrated for early-career: coursework + internships + projects = 0.6-0.8
 
-Score → Bucket: ≥0.8 EXCELLENT | ≥0.6 GOOD | ≥0.4 FAIR | <0.4 POOR
+Component 4: Preference Alignment (15% weight) - Algorithmic
+  -> Job type match (0.5) + location match (0.5)
+  -> Neutral 0.25 defaults when data unavailable
+
+Score -> Bucket: >=0.8 EXCELLENT | >=0.6 GOOD | >=0.4 FAIR | <0.4 POOR
 ```
 
-The job description is first parsed by GPT-4o-mini into a `ParsedJobDescription` (extracting required skills, preferred skills, experience level, domain, and job type), then the local scoring function runs deterministically against the user's profile. GPT-4o-mini then generates a natural-language explanation of the score. This separation keeps the expensive parsing step cacheable (saved to `Job.job_description_parsed`) while the scoring logic remains a pure, testable function with no AI dependency.
+The pipeline runs in three LLM steps: (1) GPT-4o-mini parses the job description into structured `ParsedJobDescription`, (2) GPT-4o-mini performs semantic skill matching and persona analysis returning a `SemanticFitAnalysis` with chain-of-thought reasoning, matched/missing skills with evidence, and persona alignment assessment, (3) GPT-4o-mini generates a natural-language explanation that weaves in culture fit naturally. A deterministic post-processing layer (`validateSemanticFitResults`) then corrects the LLM output against the ground truth profile skills: false "exact" matches (e.g., LLM marking "Azure" as matched when only "AWS" exists) are downgraded to "inferred", and false negatives (skills the LLM missed despite being in the 50-100+ item skills array) are rescued back to matched. This ensures scoring accuracy regardless of LLM scanning reliability on long arrays. The full semantic analysis (including CoT reasoning) is persisted in `Application.semantic_fit_analysis` for transparency. A batch re-score function enables migrating existing applications to the new scoring model via cursor-based pagination with rate limit throttling.
 
 ### 5. Versioned Prompt Architecture with YAML Frontmatter
 
 **Problem:** Prompt engineering is iterative - prompts change frequently as output quality is tuned. Hardcoding prompts in application code makes iteration slow, version tracking impossible, and A/B testing impractical. The system needs prompts to be first-class artifacts with metadata.
 
-**Solution:** All 13 AI prompts live in `prompts/` as standalone markdown files with YAML frontmatter:
+**Solution:** All 14 AI prompts live in `prompts/` as standalone markdown files with YAML frontmatter:
 
 ```yaml
 ---
@@ -445,7 +453,7 @@ Klevr enforces data isolation through **application-level user scoping** - every
 
 ### AI-Powered Analysis
 
-- **Fit Scoring** - Automated job fit analysis with skills matching, experience alignment, and preference scoring. Results include matching skills, missing required skills, missing preferred skills, and a natural-language explanation
+- **Fit Scoring** - Semantic fit analysis using LLM-powered skill inference and persona matching. Recognizes skill synonyms, infers implicit skills from projects and experience, and assesses culture/work style alignment. Results include matched skills with evidence, missing skills with suggestions, chain-of-thought reasoning, and a natural-language explanation
 - **Company Research** - AI-generated company overview with culture insights, recent news, and interview preparation tips
 - **Activity Timeline** - Chronological log of all actions on each application (status changes, score completions, document generations)
 
