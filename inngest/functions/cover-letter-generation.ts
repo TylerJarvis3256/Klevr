@@ -4,6 +4,7 @@ import { generateCoverLetterV2 } from '@/lib/cover-letter-engine'
 import { buildStructuredProfile } from '@/lib/resume-generator'
 import { renderCoverLetterPDFv2 } from '@/lib/pdf/renderer'
 import { uploadBuffer, generateDocumentKey } from '@/lib/s3'
+import { sanitizeFileName } from '@/lib/utils'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
 import { logAiTaskComplete } from '@/lib/activity-log'
 import { DocumentType, AiTaskStatus } from '@prisma/client'
@@ -119,11 +120,10 @@ export const coverLetterGenerationFunction = inngest.createFunction(
 
       // Step 9: Save document record with rich structured_data
       const document = await step.run('save-document', async () => {
-        const now = new Date()
-        const month = now.toLocaleString('en-US', { month: 'short' })
-        const year = now.getFullYear()
         const userName = application.User.Profile!.full_name || 'Cover Letter'
-        const displayName = `${userName} ${application.Job.title} ${application.Job.company} Cover Letter ${month} ${year}`
+        const displayName = sanitizeFileName(
+          `${userName} ${application.Job.title} ${application.Job.company} Cover Letter`
+        )
 
         return prisma.generatedDocument.create({
           data: {

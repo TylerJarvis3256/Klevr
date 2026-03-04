@@ -54,12 +54,19 @@ export async function generateUploadUrl(
  */
 export async function generateDownloadUrl(
   key: string,
-  expiresIn: number = 900 // 15 minutes
+  expiresIn: number = 900, // 15 minutes
+  filename?: string
 ): Promise<string> {
+  let disposition = 'attachment'
+  if (filename) {
+    const encoded = encodeURIComponent(filename).replace(/%20/g, ' ')
+    disposition = `attachment; filename="${encoded}"`
+  }
+
   const command = new GetObjectCommand({
     Bucket: S3_BUCKET,
     Key: key,
-    ResponseContentDisposition: 'attachment',
+    ResponseContentDisposition: disposition,
   })
 
   return getSignedUrl(s3Client, command, { expiresIn })

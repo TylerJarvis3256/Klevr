@@ -6,6 +6,7 @@ import { analyzeJobDescription } from '@/lib/semantic-analyzer'
 import { markdownToHtml } from '@/lib/pdf/markdown-to-html'
 import { htmlToPdf } from '@/lib/pdf/html-to-pdf'
 import { uploadBuffer, generateDocumentKey } from '@/lib/s3'
+import { sanitizeFileName } from '@/lib/utils'
 import { incrementUsage, checkUsageLimit } from '@/lib/usage'
 import { logAiTaskComplete } from '@/lib/activity-log'
 import { DocumentType, AiTaskStatus } from '@prisma/client'
@@ -146,11 +147,8 @@ export const resumeGenerationFunction = inngest.createFunction(
 
       // Step 9: Save document record
       const document = await step.run('save-document', async () => {
-        const now = new Date()
-        const month = now.toLocaleString('en-US', { month: 'short' })
-        const year = now.getFullYear()
         const userName = profile.full_name || 'Resume'
-        const displayName = `${userName} ${job.title} ${job.company} ${month} ${year}`
+        const displayName = sanitizeFileName(`${userName} ${job.title} ${job.company}`)
 
         return prisma.generatedDocument.create({
           data: {

@@ -31,6 +31,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
       },
       select: {
         storage_url: true,
+        display_name: true,
       },
     })
 
@@ -39,7 +40,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     // Generate presigned URL (expires in 15 minutes)
-    const url = await generateDownloadUrl(document.storage_url, 900)
+    const downloadName = document.display_name ? `${document.display_name}.pdf` : undefined
+    const url = await generateDownloadUrl(document.storage_url, 900, downloadName)
 
     return NextResponse.json({
       url,
