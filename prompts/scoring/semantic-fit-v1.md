@@ -89,6 +89,12 @@ Return a JSON object with exactly this structure:
 }
 ```
 
+## Critical Matching Constraints
+
+1. **Never infer competing platforms as equivalent.** AWS and Azure are different cloud providers - knowing one does NOT mean the candidate knows the other. The same applies to: React vs Angular vs Vue, PyTorch vs TensorFlow, Docker vs Podman, MySQL vs PostgreSQL, GCP vs AWS vs Azure, and all similar competing tools. Only mark a skill as "exact" or "inferred" if there is genuine evidence of that specific skill.
+2. **Scan the COMPLETE candidate_skills array before marking anything as missing.** The skills list may contain 50-100+ items. Do not stop scanning partway through. If a skill appears anywhere in the array, it is not missing.
+3. **`match_type: "exact"` requires the skill to literally appear in `candidate_skills`** (case-insensitive, including compound skills like "Git/GitHub" covering both "Git" and "GitHub"). If the skill is not in `candidate_skills` but is implied by context, use `match_type: "inferred"` instead.
+
 ## Important Constraints
 
 - All scores must be between 0.0 and 1.0

@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { buildSemanticScorerInput, analyzeSemanticFit } from '@/lib/semantic-scorer'
+import {
+  buildSemanticScorerInput,
+  analyzeSemanticFit,
+  validateSemanticFitResults,
+} from '@/lib/semantic-scorer'
 import {
   createProfile,
   createEducation,
@@ -254,5 +258,157 @@ describe('analyzeSemanticFit', () => {
 
     expect(result.semantic_skill_score).toBe(0.5)
     expect(result.persona_fit_score).toBe(0.5)
+  })
+})
+
+describe('validateSemanticFitResults', () => {
+  const baseAnalysis = createSemanticFitAnalysis({
+    matched_skills: [],
+    missing_skills: [],
+  })
+
+  it('rescues missing skills that exist in profile (exact case)', () => {
+    const analysis = {
+      ...baseAnalysis,
+      missing_skills: [
+        { skill: 'React', severity: 'required' as const, suggestion: 'Learn React' },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['React', 'TypeScript'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.matched_skills[0]).toEqual({
+      skill: 'React',
+      match_type: 'exact',
+      evidence: 'Found in candidate skills (deterministic match)',
+    })
+    expect(result.missing_skills).toHaveLength(0)
+  })
+
+  it('rescues with case-insensitive matching', () => {
+    const analysis = {
+      ...baseAnalysis,
+      missing_skills: [
+        { skill: 'react', severity: 'required' as const, suggestion: 'Learn React' },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['React', 'TypeScript'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.matched_skills[0].skill).toBe('react')
+    expect(result.missing_skills).toHaveLength(0)
+  })
+
+  it('rescues via compound skill segments ("Git/GitHub" -> "GitHub")', () => {
+    const analysis = {
+      ...baseAnalysis,
+      missing_skills: [
+        { skill: 'GitHub', severity: 'preferred' as const, suggestion: 'Use GitHub' },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['Git/GitHub', 'React'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.matched_skills[0].skill).toBe('GitHub')
+    expect(result.missing_skills).toHaveLength(0)
+  })
+
+  it('rescues via substring when profile skill is longer ("REST APIs" contains "REST")', () => {
+    const analysis = {
+      ...baseAnalysis,
+      missing_skills: [{ skill: 'REST', severity: 'required' as const, suggestion: 'Learn REST' }],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['REST APIs', 'TypeScript'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.matched_skills[0].skill).toBe('REST')
+    expect(result.missing_skills).toHaveLength(0)
+  })
+
+  it('downgrades false "exact" matches not in profile to "inferred"', () => {
+    const analysis = {
+      ...baseAnalysis,
+      matched_skills: [
+        { skill: 'Azure', match_type: 'exact' as const, evidence: 'Cloud experience' },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['AWS', 'React'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.matched_skills[0].match_type).toBe('inferred')
+    expect(result.matched_skills[0].skill).toBe('Azure')
+  })
+
+  it('preserves legitimate inferred matches', () => {
+    const analysis = {
+      ...baseAnalysis,
+      matched_skills: [
+        {
+          skill: 'JavaScript',
+          match_type: 'inferred' as const,
+          evidence: 'Implied by React experience',
+        },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['React', 'TypeScript'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.matched_skills[0].match_type).toBe('inferred')
+  })
+
+  it('avoids duplicates when rescued skill is already in matched', () => {
+    const analysis = {
+      ...baseAnalysis,
+      matched_skills: [{ skill: 'React', match_type: 'exact' as const, evidence: 'In skills' }],
+      missing_skills: [
+        { skill: 'React', severity: 'required' as const, suggestion: 'Learn React' },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, ['React'])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.missing_skills).toHaveLength(0)
+  })
+
+  it('returns unchanged when candidate skills are empty', () => {
+    const analysis = {
+      ...baseAnalysis,
+      matched_skills: [{ skill: 'React', match_type: 'exact' as const, evidence: 'In skills' }],
+      missing_skills: [
+        { skill: 'Docker', severity: 'required' as const, suggestion: 'Learn Docker' },
+      ],
+    }
+
+    const result = validateSemanticFitResults(analysis, [])
+
+    expect(result.matched_skills).toHaveLength(1)
+    expect(result.missing_skills).toHaveLength(1)
+  })
+
+  it('does NOT match when profile skill is shorter substring of distinct longer skill', () => {
+    const analysis = {
+      ...baseAnalysis,
+      missing_skills: [
+        {
+          skill: 'React Native',
+          severity: 'required' as const,
+          suggestion: 'Learn React Native',
+        },
+      ],
+    }
+
+    // "React" is shorter than "React Native" - should NOT match via substring
+    const result = validateSemanticFitResults(analysis, ['React', 'TypeScript'])
+
+    expect(result.missing_skills).toHaveLength(1)
+    expect(result.missing_skills[0].skill).toBe('React Native')
+    expect(result.matched_skills).toHaveLength(0)
   })
 })
